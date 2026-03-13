@@ -1,0 +1,14 @@
+title: Alauda Build of OpenTelemetry v2
+logoText: Alauda Build of OpenTelemetry v2
+lang: en
+root: docs
+api:
+  crds:
+    - docs/shared/crds/**/*.{yaml,yml}
+  openapis:
+    - docs/shared/openapis/**/*.{json,yaml,yml}
+permission:
+  functionresources:
+    - docs/shared/functionresources/*.{yaml,yml}
+  roletemplates:
+    - docs/shared/roletemplates/*.{yaml,yml}

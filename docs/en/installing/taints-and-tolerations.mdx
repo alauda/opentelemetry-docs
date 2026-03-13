@@ -1,0 +1,103 @@
+---
+weight: 20
+---
+
+# Using Taints and Tolerations
+
+You can use taints and tolerations to control which nodes the OpenTelemetry Collector pods are scheduled on. This is useful when you want to dedicate specific infrastructure nodes for observability workloads.
+
+## Scheduling the Collector on infrastructure nodes
+
+To schedule the OpenTelemetry Collector on infrastructure nodes, configure the `nodeSelector` and `tolerations` fields in the `OpenTelemetryCollector` custom resource.
+
+**Prerequisites**
+
+- The Alauda Build of OpenTelemetry v2 Operator must be installed.
+- Infrastructure nodes must be configured with the appropriate labels and taints.
+
+**Procedure**
+
+1. Verify that your infrastructure nodes are properly labeled and tainted:
+
+    ```bash {name=taints:check-infra-nodes}
+    kubectl get nodes -l node-role.kubernetes.io/infra= -o custom-columns=NAME:.metadata.name,TAINTS:.spec.taints
+    ```
+
+2. Create or update the `OpenTelemetryCollector` resource with `nodeSelector` and `tolerations`:
+
+    ```bash {name=taints:create-collector-with-tolerations}
+    kubectl apply -f - <<EOF
+    apiVersion: opentelemetry.io/v1beta1
+    kind: OpenTelemetryCollector
+    metadata:
+      name: otel
+      namespace: opentelemetry-collector
+    spec:
+      nodeSelector:
+        node-role.kubernetes.io/infra: ""
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/infra
+          value: reserved
+          operator: Equal
+      config:
+        receivers:
+          otlp:
+            protocols:
+              grpc: {}
+              http: {}
+        exporters:
+          debug: {}
+        service:
+          pipelines:
+            traces:
+              receivers: [otlp]
+              exporters: [debug]
+    EOF
+    ```
+
+    **Field explanations**
+
+    * **spec.nodeSelector**: Constrains the Collector pods to only run on nodes matching the specified labels. In this example, nodes with the `node-role.kubernetes.io/infra: ""` label.
+    * **spec.tolerations**: Allows the Collector pods to be scheduled on nodes with matching taints. The `NoSchedule` effect prevents other pods without this toleration from being scheduled on these nodes.
+    * **spec.tolerations[].operator**: Set to `Equal` to require an exact match of the taint key and value.
+
+**Verification**
+
+Verify that the Collector pods are scheduled on the infrastructure nodes:
+
+```bash {name=taints:verify-scheduling}
+kubectl get pods -n opentelemetry-collector -o wide
+```
+
+Confirm that the `NODE` column shows the infrastructure node names.
+
+## Using custom taints and tolerations
+
+You can also use custom taints and tolerations for more granular scheduling control. For example, to dedicate nodes specifically for observability workloads:
+
+1. Taint the target nodes:
+
+    ```bash {name=taints:taint-nodes}
+    kubectl taint nodes <node-name> dedicated=observability:NoSchedule
+    ```
+
+2. Configure the Collector with matching tolerations:
+
+    ```yaml
+    apiVersion: opentelemetry.io/v1beta1
+    kind: OpenTelemetryCollector
+    metadata:
+      name: otel
+      namespace: opentelemetry-collector
+    spec:
+      nodeSelector:
+        dedicated: observability
+      tolerations:
+        - effect: NoSchedule
+          key: dedicated
+          value: observability
+          operator: Equal
+      config:
+        # ... collector config
+    ```

@@ -1,0 +1,55 @@
+---
+weight: 70
+---
+
+# Exporters
+
+Exporters send processed telemetry data to backend systems and destinations. They define how the Collector transmits data to observability platforms, storage systems, or other collectors. At least one exporter must be configured and enabled in a pipeline for the Collector to function.
+
+## OTLP gRPC Exporter
+
+The OTLP gRPC Exporter sends traces, metrics, and logs using the OpenTelemetry Protocol over gRPC. This is the recommended exporter for sending data to OTLP-compatible backends.
+
+**Reference**: [OTLP Exporter Documentation](https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/otlpexporter/README.md)
+
+## OTLP HTTP Exporter
+
+The OTLP HTTP Exporter sends traces, metrics, and logs using the OpenTelemetry Protocol over HTTP. It provides an alternative transport for environments where HTTP is preferred over gRPC.
+
+**Reference**: [OTLP HTTP Exporter Documentation](https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/otlphttpexporter/README.md)
+
+## Debug Exporter
+
+The Debug Exporter outputs telemetry data to the console or logs. It's primarily used for troubleshooting and development, allowing you to inspect data flowing through the Collector.
+
+**Reference**: [Debug Exporter Documentation](https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/debugexporter/README.md)
+
+## Load Balancing Exporter
+
+The Load Balancing Exporter distributes telemetry data across multiple backend endpoints. It provides load distribution and failover capabilities for high-availability deployments.
+
+**Reference**: [Load Balancing Exporter Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/exporter/loadbalancingexporter/README.md)
+
+## Prometheus Exporter
+
+The Prometheus Exporter exposes metrics in Prometheus format via an HTTP endpoint. This allows Prometheus servers to scrape metrics from the Collector.
+
+**Reference**: [Prometheus Exporter Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/exporter/prometheusexporter/README.md)
+
+## Prometheus Remote Write Exporter
+
+The Prometheus Remote Write Exporter sends metrics to Prometheus-compatible backends using the Remote Write protocol. It enables pushing metrics to systems like Prometheus, Cortex, or Thanos.
+
+**Reference**: [Prometheus Remote Write Exporter Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/exporter/prometheusremotewriteexporter/README.md)
+
+## Kafka Exporter
+
+The Kafka Exporter sends telemetry data to Kafka topics. It enables integration with Kafka-based data pipelines and streaming platforms for scalable data distribution.
+
+**Reference**: [Kafka Exporter Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/exporter/kafkaexporter/README.md)
+
+## File Exporter
+
+The File Exporter writes telemetry data to files on the local filesystem. It's useful for archiving data, batch processing, or debugging purposes.
+
+**Reference**: [File Exporter Documentation](https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/fileexporter/README.md)

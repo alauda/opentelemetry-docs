@@ -1,0 +1,103 @@
+---
+weight: 10
+---
+
+# Getting the OpenTelemetry Collector logs
+
+Obtaining logs from the OpenTelemetry Collector is essential for diagnosing issues. You can troubleshoot problems in data collection and processing by configuring log levels and viewing the Collector pod logs.
+
+## Setting the log level
+
+You can set the appropriate log level in the `OpenTelemetryCollector` custom resource:
+
+```yaml
+config:
+  service:
+    telemetry:
+      logs:
+        level: debug
+```
+
+**Log level descriptions**
+
+The Collector supports the following log levels:
+
+- `debug`: Detailed debugging information, suitable for in-depth troubleshooting
+- `info`: General informational logs, default level
+- `warn`: Warning messages
+- `error`: Error messages
+
+:::tip
+In production environments, it is recommended to use the `info` level. Only use the `debug` level when detailed diagnostic information is needed, as it generates substantial log output.
+:::
+
+## Viewing the Collector logs
+
+After configuring the log level, you can view the Collector logs using the following command:
+
+```bash
+kubectl logs <collector-pod-name> -n <namespace>
+```
+
+**Example**
+
+```bash
+kubectl logs otel-collector-0 -n opentelemetry-collector
+```
+
+If the Collector runs in Deployment mode, you can view logs from all replicas:
+
+```bash
+kubectl logs -l app.kubernetes.io/name=otel-collector -n opentelemetry-collector
+```
+
+## Collecting diagnostic data
+
+When submitting issues to technical support, collecting complete diagnostic data is helpful. You can gather relevant information using the following methods:
+
+**Collect Collector configuration**
+
+```bash
+kubectl get opentelemetrycollector <collector-name> -n <namespace> -o yaml > collector-config.yaml
+```
+
+**Collect Pod status**
+
+```bash
+kubectl describe pod <collector-pod-name> -n <namespace> > pod-status.txt
+```
+
+**Collect event information**
+
+```bash
+kubectl get events -n <namespace> --sort-by='.lastTimestamp' > events.txt
+```
+
+## Troubleshooting common issues
+
+**Collector pod fails to start**
+
+Check pod events and logs to determine the cause:
+
+```bash
+kubectl describe pod <collector-pod-name> -n <namespace>
+kubectl logs <collector-pod-name> -n <namespace>
+```
+
+Common causes include configuration errors, insufficient resources, or image pull failures.
+
+**Numerous errors in logs**
+
+If logs contain many error messages, check:
+
+1. Whether the Collector configuration is correct
+2. Whether backend services (such as Jaeger, Prometheus) are accessible
+3. Whether network policies are blocking traffic
+
+**Excessive log output**
+
+If `debug` level logs produce too much output, you can:
+
+1. Adjust the log level to `info`
+2. Configure log sampling to reduce output volume
+3. Use log filters to record only specific component logs

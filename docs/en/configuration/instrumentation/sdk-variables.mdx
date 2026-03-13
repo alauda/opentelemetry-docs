@@ -1,0 +1,128 @@
+---
+weight: 30
+---
+
+# SDK Variables
+
+OpenTelemetry SDK behavior is controlled through environment variables that configure various aspects of telemetry collection, processing, and export. The Instrumentation custom resource allows you to set these variables to customize how your instrumented applications generate and send telemetry data.
+
+## Common SDK Environment Variables
+
+The following environment variables are commonly used to configure OpenTelemetry SDK behavior:
+
+### Service Identification
+
+- `OTEL_SERVICE_NAME` - Defines the logical name of the service
+- `OTEL_RESOURCE_ATTRIBUTES` - Specifies additional resource attributes as key-value pairs
+
+### Exporter Configuration
+
+- `OTEL_TRACES_EXPORTER` - Configures the trace exporter (e.g., `otlp`, `jaeger`, `zipkin`)
+- `OTEL_METRICS_EXPORTER` - Configures the metrics exporter (e.g., `otlp`, `prometheus`)
+- `OTEL_LOGS_EXPORTER` - Configures the logs exporter (e.g., `otlp`)
+
+### OTLP Endpoint Configuration
+
+- `OTEL_EXPORTER_OTLP_ENDPOINT` - Sets the OTLP endpoint for all signals
+- `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` - Sets the OTLP endpoint specifically for traces
+- `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` - Sets the OTLP endpoint specifically for metrics
+- `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` - Sets the OTLP endpoint specifically for logs
+
+### Protocol Configuration
+
+- `OTEL_EXPORTER_OTLP_PROTOCOL` - Specifies the OTLP protocol (`grpc` or `http/protobuf`)
+- `OTEL_EXPORTER_OTLP_TRACES_PROTOCOL` - Protocol for traces
+- `OTEL_EXPORTER_OTLP_METRICS_PROTOCOL` - Protocol for metrics
+
+## Configuring SDK Variables in Instrumentation CR
+
+You can set SDK environment variables in the Instrumentation custom resource:
+
+```yaml
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: my-instrumentation
+spec:
+  env:
+    - name: OTEL_SERVICE_NAME
+      value: my-application
+    - name: OTEL_RESOURCE_ATTRIBUTES
+      value: deployment.environment=production,service.version=1.0.0
+    - name: OTEL_TRACES_EXPORTER
+      value: otlp
+    - name: OTEL_METRICS_EXPORTER
+      value: otlp
+    - name: OTEL_EXPORTER_OTLP_ENDPOINT
+      value: http://otel-collector:4318
+    - name: OTEL_EXPORTER_OTLP_PROTOCOL
+      value: http/protobuf
+```
+
+These variables are automatically injected into instrumented application containers.
+
+## Sampling Configuration
+
+Control trace sampling behavior with these variables:
+
+- `OTEL_TRACES_SAMPLER` - Sampling strategy (e.g., `always_on`, `always_off`, `traceidratio`, `parentbased_always_on`)
+- `OTEL_TRACES_SAMPLER_ARG` - Argument for the sampler (e.g., sampling ratio for `traceidratio`)
+
+Example configuration:
+
+```yaml
+spec:
+  env:
+    - name: OTEL_TRACES_SAMPLER
+      value: parentbased_traceidratio
+    - name: OTEL_TRACES_SAMPLER_ARG
+      value: "0.1"
+```
+
+This configuration samples 10% of traces while respecting parent span sampling decisions.
+
+## Propagation Configuration
+
+Configure context propagation formats:
+
+- `OTEL_PROPAGATORS` - Comma-separated list of propagators (e.g., `tracecontext,baggage,b3`)
+
+Example:
+
+```yaml
+spec:
+  env:
+    - name: OTEL_PROPAGATORS
+      value: tracecontext,baggage
+```
+
+## Batch Processing Configuration
+
+Control how telemetry data is batched before export:
+
+- `OTEL_BSP_SCHEDULE_DELAY` - Delay interval between batch exports (milliseconds)
+- `OTEL_BSP_EXPORT_TIMEOUT` - Maximum time to wait for export (milliseconds)
+- `OTEL_BSP_MAX_QUEUE_SIZE` - Maximum queue size for batching
+- `OTEL_BSP_MAX_EXPORT_BATCH_SIZE` - Maximum batch size for export
+
+## Logging Configuration
+
+Configure SDK logging behavior:
+
+- `OTEL_LOG_LEVEL` - SDK log level (e.g., `debug`, `info`, `warn`, `error`)
+
+:::note
+SDK environment variables follow the OpenTelemetry specification. For a complete list of available variables and their descriptions, refer to the [OpenTelemetry Environment Variable Specification](https://opentelemetry.io/docs/specs/otel/configuration/sdk-environment-variables/).
+:::
+
+## Variable Precedence
+
+When the same variable is defined in multiple places, the following precedence order applies (highest to lowest):
+
+1. Environment variables defined directly in the pod specification
+2. Environment variables from the Instrumentation CR
+3. Default values from the instrumentation library
+
+:::tip
+Use the Instrumentation CR to define common configuration across multiple applications, and override specific values in individual pod specifications when needed.
+:::

@@ -1,0 +1,71 @@
+---
+weight: 10
+---
+
+# Deployment Modes
+
+The OpenTelemetryCollector custom resource supports multiple deployment modes, allowing you to choose the most appropriate strategy based on your telemetry collection requirements.
+
+## Deployment
+
+This is the standard deployment mode and serves as the default option for most use cases.
+
+## StatefulSet
+
+When your workload requires persistent state management, such as utilizing the Collector's File Storage Extension or implementing the Tail Sampling Processor, the StatefulSet deployment mode is recommended. This mode ensures that each Collector instance maintains its identity and storage across restarts.
+
+## DaemonSet
+
+For scenarios where telemetry data must be collected from every node in the cluster, the DaemonSet deployment mode is ideal. This is particularly useful when using the Collector's Filelog Receiver to capture container logs from all nodes.
+
+## Sidecar
+
+The Sidecar deployment mode injects the Collector directly into application pods, enabling two primary use cases:
+
+1. **Log file access**: When you need to read log files from within a container, inject the Collector as a sidecar and configure the Filelog Receiver with a shared volume (such as emptyDir) to access the logs.
+
+2. **Localhost telemetry forwarding**: When applications send telemetry data via localhost, the sidecar Collector can receive this data and forward it to external services through encrypted and authenticated connections.
+
+### Sidecar Injection Configuration
+
+:::note
+When using the sidecar deployment mode, you must configure two settings:
+1. Set `spec.mode: sidecar` in the OpenTelemetryCollector custom resource
+2. Add the `sidecar.opentelemetry.io/inject` annotation to either the pod or namespace
+:::
+
+The `sidecar.opentelemetry.io/inject` annotation can be applied at the pod level or namespace level. If set on both, the pod-level annotation takes precedence when it is set to either `false` or a specific OpenTelemetryCollector CR name.
+
+**Supported annotation values:**
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    sidecar.opentelemetry.io/inject: "<value>"
+```
+
+The annotation accepts the following values:
+
+- `false`: Disables Collector injection (default behavior when annotation is absent)
+- `true`: Injects the Collector using the OpenTelemetryCollector CR configuration from the same namespace
+- `<collector_name>`: Injects the Collector using the specified `<collector_name>` OpenTelemetryCollector CR from the same namespace
+- `<namespace>/<collector_name>`: Injects the Collector using the specified `<collector_name>` OpenTelemetryCollector CR from the `<namespace>` namespace
+
+**Example pod annotation:**
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp
+  annotations:
+    sidecar.opentelemetry.io/inject: "my-collector"
+spec:
+  containers:
+  - name: app
+    image: myapp:latest
+```
+
+This configuration injects the Collector defined in the `my-collector` OpenTelemetryCollector CR as a sidecar container in the pod.

@@ -1,0 +1,135 @@
+---
+weight: 40
+---
+
+# Exporter Configuration
+
+Exporters define how telemetry data is sent from instrumented applications to observability backends. The Instrumentation custom resource allows you to configure exporter settings that control the destination and format of telemetry data.
+
+## Basic Exporter Configuration
+
+The exporter configuration in the Instrumentation CR specifies the endpoint where telemetry data should be sent:
+
+```yaml
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: my-instrumentation
+spec:
+  exporter:
+    endpoint: http://otel-collector:4318
+```
+
+This configuration directs all telemetry data (traces, metrics, and logs) to the specified endpoint using the OTLP protocol.
+
+## OTLP Protocol
+
+The OpenTelemetry Protocol (OTLP) is the native protocol for transmitting telemetry data. It supports both gRPC and HTTP transports:
+
+- **gRPC** - Default port 4317, binary protocol with efficient serialization
+- **HTTP** - Default port 4318, HTTP/1.1 or HTTP/2 with protobuf or JSON encoding
+
+You can specify the protocol using environment variables:
+
+```yaml
+spec:
+  exporter:
+    endpoint: http://otel-collector:4318
+  env:
+    - name: OTEL_EXPORTER_OTLP_PROTOCOL
+      value: http/protobuf
+```
+
+## Signal-specific Endpoints
+
+You can configure different endpoints for different telemetry signals:
+
+```yaml
+spec:
+  env:
+    - name: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      value: http://traces-collector:4318/v1/traces
+    - name: OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
+      value: http://metrics-collector:4318/v1/metrics
+    - name: OTEL_EXPORTER_OTLP_LOGS_ENDPOINT
+      value: http://logs-collector:4318/v1/logs
+```
+
+This allows you to route different types of telemetry data to specialized backends.
+
+## Exporter Headers
+
+You can add custom headers to exporter requests for authentication or routing purposes:
+
+```yaml
+spec:
+  env:
+    - name: OTEL_EXPORTER_OTLP_HEADERS
+      value: "api-key=your-api-key,tenant-id=production"
+```
+
+Headers are specified as comma-separated key-value pairs.
+
+## Timeout Configuration
+
+Configure export timeout to control how long the SDK waits for export operations:
+
+```yaml
+spec:
+  env:
+    - name: OTEL_EXPORTER_OTLP_TIMEOUT
+      value: "10000"
+```
+
+The timeout value is specified in milliseconds.
+
+## Compression
+
+Enable compression to reduce network bandwidth usage:
+
+```yaml
+spec:
+  env:
+    - name: OTEL_EXPORTER_OTLP_COMPRESSION
+      value: gzip
+```
+
+Supported compression algorithms include `gzip` and `none`.
+
+## Example Configuration
+
+Here's a complete example of exporter configuration:
+
+```yaml
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: production-instrumentation
+  namespace: production
+spec:
+  exporter:
+    endpoint: http://otel-collector.observability.svc:4318
+  env:
+    - name: OTEL_EXPORTER_OTLP_PROTOCOL
+      value: http/protobuf
+    - name: OTEL_EXPORTER_OTLP_TIMEOUT
+      value: "10000"
+    - name: OTEL_EXPORTER_OTLP_COMPRESSION
+      value: gzip
+```
+
+:::tip
+When using the OpenTelemetry Collector as your backend, configure the exporter to point to the Collector's OTLP receiver endpoint. The Collector can then handle routing, processing, and forwarding telemetry data to multiple backends.
+:::
+
+## Verifying Exporter Configuration
+
+After configuring the exporter, verify that telemetry data is being sent correctly by:
+
+1. Checking application logs for export errors
+2. Monitoring the backend system for incoming telemetry data
+3. Using the OpenTelemetry Collector's debug exporter to inspect data flow
+
+:::note
+Ensure that the exporter endpoint is accessible from your application pods. Network policies, service mesh configurations, and firewall rules may affect connectivity.
+:::

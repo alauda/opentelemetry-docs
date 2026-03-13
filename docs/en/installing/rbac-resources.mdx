@@ -1,0 +1,83 @@
+---
+weight: 30
+---
+
+# Creating the Required RBAC Resources Automatically
+
+The Alauda Build of OpenTelemetry v2 Operator automatically creates the necessary cluster-level RBAC resources when certain Collector components require access to Kubernetes resources across the cluster. For some components, such as the `k8sattributes` processor or the `k8sobjects` receiver, additional RBAC permissions are needed beyond the default Operator scope.
+
+## Automatic RBAC creation
+
+The Operator can automatically create the required `ClusterRole` and `ClusterRoleBinding` resources when the OpenTelemetry Collector configuration includes components that require cluster-wide access.
+
+The following components typically require additional RBAC permissions:
+
+* **k8sattributes processor**: Requires permissions to query Pod, Namespace, Node, ReplicaSet, and Deployment resources for enriching telemetry data with Kubernetes metadata.
+* **k8sobjects receiver**: Requires permissions to watch and list Kubernetes resources such as Events, Pods, and Nodes.
+* **kubeletstats receiver**: Requires permissions to access kubelet endpoints for node and pod metrics.
+* **resourcedetection processor**: Requires permissions to access Node resources for resource detection.
+
+## Manual RBAC configuration
+
+If automatic RBAC creation is not sufficient or needs to be customized, you can manually create the required RBAC resources.
+
+The following example creates a `ClusterRole` and `ClusterRoleBinding` that grants the OpenTelemetry Collector service account read access to Kubernetes resources commonly needed for telemetry enrichment:
+
+**Procedure**
+
+1. Create the `ClusterRole`:
+
+    ```bash {name=rbac:create-clusterrole}
+    kubectl apply -f - <<EOF
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: otel-collector-k8s-reader
+    rules:
+      - apiGroups: [""]
+        resources: ["pods", "namespaces", "nodes", "nodes/metrics", "services", "endpoints", "events"]
+        verbs: ["get", "list", "watch"]
+      - apiGroups: ["apps"]
+        resources: ["replicasets", "deployments", "daemonsets", "statefulsets"]
+        verbs: ["get", "list", "watch"]
+      - apiGroups: ["batch"]
+        resources: ["jobs", "cronjobs"]
+        verbs: ["get", "list", "watch"]
+    EOF
+    ```
+
+2. Create the `ClusterRoleBinding`:
+
+    ```bash {name=rbac:create-clusterrolebinding}
+    kubectl apply -f - <<EOF
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: otel-collector-k8s-reader
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: otel-collector-k8s-reader
+    subjects:
+      - kind: ServiceAccount
+        name: otel-collector
+        namespace: opentelemetry-collector
+    EOF
+    ```
+
+    **Field explanations**
+
+    * **subjects[].name**: The name of the service account used by the OpenTelemetry Collector. This matches the `<collector-name>-collector` naming convention used by the Operator.
+    * **subjects[].namespace**: The namespace where the OpenTelemetry Collector is deployed.
+
+**Verification**
+
+Verify that the RBAC resources have been created:
+
+```bash {name=rbac:verify-clusterrole}
+kubectl get clusterrole otel-collector-k8s-reader
+```
+
+```bash {name=rbac:verify-clusterrolebinding}
+kubectl get clusterrolebinding otel-collector-k8s-reader
+```

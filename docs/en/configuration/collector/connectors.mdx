@@ -1,0 +1,31 @@
+---
+weight: 80
+---
+
+# Connectors
+
+Connectors are specialized components that join pairs of pipelines by acting as both exporters and receivers. They consume telemetry data from one pipeline and emit transformed or derived data to another pipeline, enabling advanced data processing workflows.
+
+## Count Connector
+
+The Count Connector generates metrics that count the number of telemetry data points passing through it. It's useful for monitoring data flow rates and volumes within the Collector.
+
+**Reference**: [Count Connector Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/connector/countconnector/README.md)
+
+## Routing Connector
+
+The Routing Connector routes telemetry data to different pipelines based on configurable criteria. It enables conditional data flow and selective processing based on attributes or resource properties.
+
+**Reference**: [Routing Connector Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/connector/routingconnector/README.md)
+
+## Forward Connector
+
+The Forward Connector passes telemetry data from one pipeline to another without modification. It's useful for creating pipeline chains and organizing complex data flows.
+
+**Reference**: [Forward Connector Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/connector/forwardconnector/README.md)
+
+## Spanmetrics Connector
+
+The Spanmetrics Connector generates metrics from span data, creating RED (Rate, Error, Duration) metrics for services. It enables automatic service-level metrics generation from distributed traces.
+
+**Reference**: [Spanmetrics Connector Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/connector/spanmetricsconnector/README.md)

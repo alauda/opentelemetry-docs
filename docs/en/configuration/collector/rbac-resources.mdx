@@ -1,0 +1,82 @@
+---
+weight: 40
+---
+
+# RBAC Resources
+
+The Alauda build of OpenTelemetry Operator can automatically create the necessary Role-Based Access Control (RBAC) resources required for the OpenTelemetry Collector to function properly within your Kubernetes cluster.
+
+## Automatic RBAC Creation
+
+When deploying the OpenTelemetry Collector, certain components require specific Kubernetes permissions to access cluster resources. For example, receivers that collect Kubernetes metrics or events need permissions to query the Kubernetes API.
+
+The Operator simplifies this process by automatically generating and managing the required RBAC resources, including:
+
+- **ServiceAccounts**: Identity for the Collector pods
+- **ClusterRoles**: Cluster-wide permissions definitions
+- **ClusterRoleBindings**: Associations between ServiceAccounts and ClusterRoles
+- **Roles**: Namespace-scoped permissions (when applicable)
+- **RoleBindings**: Namespace-scoped associations
+
+## Configuration
+
+To enable automatic RBAC resource creation, configure the OpenTelemetryCollector custom resource with the appropriate settings. The Operator analyzes your Collector configuration and determines the necessary permissions based on the components you've enabled.
+
+**Example configuration:**
+
+```yaml
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: cluster-collector
+  namespace: observability
+spec:
+  mode: deployment
+  serviceAccount: otel-collector
+  config:
+    receivers:
+      k8s_cluster:
+        auth_type: serviceAccount
+    exporters:
+      otlp:
+        endpoint: backend:4317
+    service:
+      pipelines:
+        metrics:
+          receivers: [k8s_cluster]
+          exporters: [otlp]
+```
+
+:::note
+The Operator automatically creates a ServiceAccount and associated RBAC resources based on the receivers and processors configured in your Collector. You don't need to manually define these resources unless you have specific customization requirements.
+:::
+
+## Required Permissions by Component
+
+Different Collector components require different levels of access:
+
+- **Kubernetes Cluster Receiver**: Requires cluster-wide read permissions for nodes, pods, and other cluster resources
+- **Kubernetes Objects Receiver**: Requires permissions to watch and list specific Kubernetes object types
+- **Kubelet Stats Receiver**: Requires permissions to access kubelet metrics endpoints
+- **Kubernetes Attributes Processor**: Requires permissions to query pod and namespace metadata
+
+The Operator ensures that only the minimum necessary permissions are granted based on your configuration, following the principle of least privilege.
+
+## Manual RBAC Configuration
+
+If you prefer to manage RBAC resources manually or need custom permissions, you can create your own ServiceAccount and reference it in the OpenTelemetryCollector custom resource:
+
+```yaml
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: custom-collector
+  namespace: observability
+spec:
+  mode: deployment
+  serviceAccount: my-custom-serviceaccount
+  config:
+    # ... collector configuration
+```
+
+When using a custom ServiceAccount, ensure you've created the necessary ClusterRole and ClusterRoleBinding resources with appropriate permissions for your Collector components.

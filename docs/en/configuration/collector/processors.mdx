@@ -1,0 +1,91 @@
+---
+weight: 60
+---
+
+# Processors
+
+Processors transform, filter, and enrich telemetry data as it flows through the Collector pipeline. They operate on data between receivers and exporters, enabling you to modify data before it reaches its destination. Processors are optional but highly useful for data quality and optimization.
+
+## Batch Processor
+
+The Batch Processor groups telemetry data into batches before sending to exporters. Batching reduces the number of outbound requests and improves throughput, making it essential for production deployments.
+
+**Reference**: [Batch Processor Documentation](https://github.com/open-telemetry/opentelemetry-collector/blob/main/processor/batchprocessor/README.md)
+
+## Memory Limiter Processor
+
+The Memory Limiter Processor prevents the Collector from consuming excessive memory by monitoring usage and applying backpressure when limits are approached. This processor is critical for maintaining Collector stability.
+
+**Reference**: [Memory Limiter Processor Documentation](https://github.com/open-telemetry/opentelemetry-collector/blob/main/processor/memorylimiterprocessor/README.md)
+
+## Resource Detection Processor
+
+The Resource Detection Processor automatically detects and adds resource attributes to telemetry data based on the environment. It can identify cloud provider metadata, Kubernetes information, and host details.
+
+**Reference**: [Resource Detection Processor Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/resourcedetectionprocessor/README.md)
+
+## Attributes Processor
+
+The Attributes Processor modifies attributes on spans, metrics, and logs. It supports adding, updating, deleting, and hashing attributes, enabling flexible data transformation.
+
+**Reference**: [Attributes Processor Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/attributesprocessor/README.md)
+
+## Resource Processor
+
+The Resource Processor modifies resource attributes that apply to all telemetry data from a source. It's useful for adding consistent metadata like environment names or service identifiers.
+
+**Reference**: [Resource Processor Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/resourceprocessor/README.md)
+
+## Span Processor
+
+The Span Processor modifies span names and attributes based on configurable rules. It enables standardization of span data and extraction of attributes from span names.
+
+**Reference**: [Span Processor Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/spanprocessor/README.md)
+
+## Kubernetes Attributes Processor
+
+The Kubernetes Attributes Processor enriches telemetry data with Kubernetes metadata such as pod name, namespace, labels, and annotations. This processor is essential for correlating telemetry with Kubernetes resources.
+
+**Reference**: [Kubernetes Attributes Processor Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/k8sattributesprocessor/README.md)
+
+## Filter Processor
+
+The Filter Processor selectively includes or excludes telemetry data based on configurable criteria. It helps reduce data volume by filtering out unwanted spans, metrics, or logs.
+
+**Reference**: [Filter Processor Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/filterprocessor/README.md)
+
+## Cumulative-to-Delta Processor
+
+The Cumulative-to-Delta Processor converts cumulative metrics to delta metrics. This is useful when backend systems expect delta values or when reducing storage requirements.
+
+**Reference**: [Cumulative-to-Delta Processor Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/cumulativetodeltaprocessor/README.md)
+
+## Group-by-Attributes Processor
+
+The Group-by-Attributes Processor groups spans, metrics, or logs by specified attributes and reassigns them to new resource contexts. This enables flexible data organization and routing.
+
+**Reference**: [Group-by-Attributes Processor Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/groupbyattrsprocessor/README.md)
+
+## Transform Processor
+
+The Transform Processor applies complex transformations to telemetry data using the OpenTelemetry Transformation Language (OTTL). It provides powerful capabilities for data manipulation and enrichment.
+
+**Reference**: [Transform Processor Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/transformprocessor/README.md)
+
+## Tail Sampling Processor
+
+The Tail Sampling Processor makes sampling decisions based on complete trace data. It waits for all spans in a trace before deciding whether to keep or drop the trace, enabling intelligent sampling strategies.
+
+**Reference**: [Tail Sampling Processor Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/tailsamplingprocessor/README.md)
+
+## Probabilistic Sampling Processor
+
+The Probabilistic Sampling Processor samples traces based on a configured probability. It reduces data volume by keeping only a percentage of traces while maintaining statistical representativeness.
+
+**Reference**: [Probabilistic Sampling Processor Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/probabilisticsamplerprocessor/README.md)
+
+## Metric Start Time Processor
+
+The Metric Start Time Processor adjusts the start time of metrics to ensure consistency across collection intervals. This is useful for aligning metrics from different sources.
+
+**Reference**: [Metric Start Time Processor Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/metricstarttimeprocessor/README.md)

@@ -1,0 +1,43 @@
+---
+weight: 70
+---
+
+# Go Auto-instrumentation
+
+The Go auto-instrumentation enables automatic telemetry collection for Go applications by leveraging eBPF (Extended Berkeley Packet Filter) technology. This approach instruments Go applications at runtime without requiring code modifications or recompilation.
+
+The Operator injects the OpenTelemetry Go auto-instrumentation components into Go application containers, using eBPF to capture function calls, HTTP requests, and other telemetry data. This provides observability for Go applications with minimal performance overhead.
+
+## Enabling Go Instrumentation
+
+To enable auto-instrumentation for Go applications, annotate your pod or namespace:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: go-app
+  annotations:
+    instrumentation.opentelemetry.io/inject-go: "true"
+spec:
+  containers:
+  - name: app
+    image: mygoapp:latest
+```
+
+The Operator will automatically inject the instrumentation components when the pod is created.
+
+## Configuration Reference
+
+For detailed configuration options, supported Go versions, and advanced usage scenarios, refer to the official OpenTelemetry Operator documentation:
+
+**[Go Auto-instrumentation Documentation](https://github.com/open-telemetry/opentelemetry-operator?tab=readme-ov-file#using-go-autoinstrumentation)**
+
+The official documentation provides comprehensive information about:
+
+- Supported Go versions
+- eBPF requirements and kernel compatibility
+- Configuration parameters and environment variables
+- Instrumented libraries and packages
+- Performance considerations
+- Troubleshooting guidance

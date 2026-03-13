@@ -1,0 +1,91 @@
+---
+weight: 50
+---
+
+# Receivers
+
+Receivers are responsible for ingesting telemetry data into the OpenTelemetry Collector. They define how the Collector accepts data from various sources, supporting multiple protocols and formats. At least one receiver must be configured and enabled in a pipeline for the Collector to function.
+
+## OTLP Receiver
+
+The OTLP Receiver ingests traces, metrics, and logs using the OpenTelemetry Protocol (OTLP), which is the native protocol for OpenTelemetry. It supports both gRPC and HTTP transports.
+
+**Reference**: [OTLP Receiver Documentation](https://github.com/open-telemetry/opentelemetry-collector/blob/main/receiver/otlpreceiver/README.md)
+
+## Jaeger Receiver
+
+The Jaeger Receiver accepts trace data in Jaeger format, enabling migration from Jaeger-based tracing systems to OpenTelemetry. It supports multiple Jaeger protocols including Thrift and gRPC.
+
+**Reference**: [Jaeger Receiver Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/jaegerreceiver/README.md)
+
+## Host Metrics Receiver
+
+The Host Metrics Receiver collects system-level metrics from the host machine, including CPU, memory, disk, and network statistics. This receiver is useful for infrastructure monitoring.
+
+**Reference**: [Host Metrics Receiver Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/hostmetricsreceiver/README.md)
+
+## Kubernetes Objects Receiver
+
+The Kubernetes Objects Receiver collects objects from the Kubernetes API server, allowing you to monitor Kubernetes resource states and events. It can watch specific object types and namespaces.
+
+**Reference**: [Kubernetes Objects Receiver Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/k8sobjectsreceiver/README.md)
+
+## Kubelet Stats Receiver
+
+The Kubelet Stats Receiver pulls pod and container metrics from the kubelet's stats API. It provides detailed resource usage information for containers running in Kubernetes.
+
+**Reference**: [Kubelet Stats Receiver Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/kubeletstatsreceiver/README.md)
+
+## Prometheus Receiver
+
+The Prometheus Receiver scrapes metrics from Prometheus-compatible endpoints. It enables the Collector to act as a Prometheus scraper, collecting metrics from applications that expose Prometheus metrics.
+
+**Reference**: [Prometheus Receiver Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/prometheusreceiver/README.md)
+
+## Prometheus Remote Write Receiver
+
+The Prometheus Remote Write Receiver accepts metrics sent via Prometheus Remote Write protocol. This allows Prometheus servers to forward metrics to the OpenTelemetry Collector.
+
+**Reference**: [Prometheus Remote Write Receiver Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/prometheusremotewritereceiver/README.md)
+
+## OTLP JSON File Receiver
+
+The OTLP JSON File Receiver reads OTLP-formatted telemetry data from JSON files. This is useful for batch processing or replaying captured telemetry data.
+
+**Reference**: [OTLP JSON File Receiver Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/otlpjsonfilereceiver/README.md)
+
+## Zipkin Receiver
+
+The Zipkin Receiver accepts trace data in Zipkin format, facilitating migration from Zipkin-based distributed tracing systems. It supports both JSON and Thrift encodings.
+
+**Reference**: [Zipkin Receiver Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/zipkinreceiver/README.md)
+
+## Kafka Receiver
+
+The Kafka Receiver consumes telemetry data from Kafka topics. It enables the Collector to integrate with Kafka-based data pipelines for scalable telemetry ingestion.
+
+**Reference**: [Kafka Receiver Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/kafkareceiver/README.md)
+
+## Kubernetes Cluster Receiver
+
+The Kubernetes Cluster Receiver collects cluster-level metrics from the Kubernetes API server, providing insights into cluster health and resource utilization across nodes, namespaces, and workloads.
+
+**Reference**: [Kubernetes Cluster Receiver Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/k8sclusterreceiver/README.md)
+
+## Filelog Receiver
+
+The Filelog Receiver tails and parses log files from the filesystem. It supports various log formats and parsing strategies, making it ideal for collecting application and system logs.
+
+**Reference**: [Filelog Receiver Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/filelogreceiver/README.md)
+
+## Journald Receiver
+
+The Journald Receiver collects logs from systemd's journald service. It provides access to system and service logs on Linux systems using systemd.
+
+**Reference**: [Journald Receiver Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/journaldreceiver/README.md)
+
+## Kubernetes Events Receiver
+
+The Kubernetes Events Receiver collects Kubernetes events from the API server. Events provide valuable information about cluster activities, state changes, and errors.
+
+**Reference**: [Kubernetes Events Receiver Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/k8seventsreceiver/README.md)

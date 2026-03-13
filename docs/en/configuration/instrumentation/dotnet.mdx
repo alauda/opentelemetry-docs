@@ -1,0 +1,42 @@
+---
+weight: 60
+---
+
+# .NET Auto-instrumentation
+
+The .NET auto-instrumentation provides automatic telemetry collection for .NET applications, including ASP.NET Core, Entity Framework, and other popular .NET libraries. This instrumentation captures traces, metrics, and logs without requiring changes to your application code.
+
+The Operator injects the OpenTelemetry .NET automatic instrumentation into .NET application containers, configuring it to instrument common libraries and frameworks automatically. This enables comprehensive observability for .NET workloads running in Kubernetes.
+
+## Enabling .NET Instrumentation
+
+To enable auto-instrumentation for .NET applications, annotate your pod or namespace:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dotnet-app
+  annotations:
+    instrumentation.opentelemetry.io/inject-dotnet: "true"
+spec:
+  containers:
+  - name: app
+    image: myapp:latest
+```
+
+The Operator will automatically inject the instrumentation components and configure the .NET runtime to load them at startup.
+
+## Configuration Reference
+
+For detailed configuration options, supported libraries, and advanced usage scenarios, refer to the official OpenTelemetry Operator documentation:
+
+**[.NET Auto-instrumentation Documentation](https://github.com/open-telemetry/opentelemetry-operator?tab=readme-ov-file#using-dotnet-autoinstrumentation)**
+
+The official documentation provides comprehensive information about:
+
+- Supported .NET versions and frameworks
+- Configuration parameters and environment variables
+- Instrumented libraries and frameworks
+- Performance considerations
+- Troubleshooting guidance
