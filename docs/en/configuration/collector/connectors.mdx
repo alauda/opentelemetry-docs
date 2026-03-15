@@ -4,28 +4,28 @@ weight: 80
 
 # Connectors
 
-Connectors are specialized components that join pairs of pipelines by acting as both exporters and receivers. They consume telemetry data from one pipeline and emit transformed or derived data to another pipeline, enabling advanced data processing workflows.
+Connectors bridge two pipelines by acting as an exporter on one end and a receiver on the other. They can handle the same or different signal types across the connected pipelines, and they may transform, summarize, replicate, or route the data that passes through them.
 
 ## Count Connector
 
-The Count Connector generates metrics that count the number of telemetry data points passing through it. It's useful for monitoring data flow rates and volumes within the Collector.
+The Count Connector produces count-based metrics by tallying trace spans, span events, metrics, metric data points, and log records that flow through the exporter pipeline.
 
 **Reference**: [Count Connector Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/connector/countconnector/README.md)
 
 ## Routing Connector
 
-The Routing Connector routes telemetry data to different pipelines based on configurable criteria. It enables conditional data flow and selective processing based on attributes or resource properties.
+The Routing Connector directs logs, metrics, and traces to designated pipelines based on resource attribute values and routing rules expressed as OpenTelemetry Transformation Language (OTTL) statements.
 
 **Reference**: [Routing Connector Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/connector/routingconnector/README.md)
 
 ## Forward Connector
 
-The Forward Connector passes telemetry data from one pipeline to another without modification. It's useful for creating pipeline chains and organizing complex data flows.
+The Forward Connector joins two pipelines that share the same signal type into a single data flow.
 
-**Reference**: [Forward Connector Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/connector/forwardconnector/README.md)
+**Reference**: [Forward Connector Documentation](https://github.com/open-telemetry/opentelemetry-collector/blob/main/connector/forwardconnector/README.md)
 
 ## Spanmetrics Connector
 
-The Spanmetrics Connector generates metrics from span data, creating RED (Rate, Error, Duration) metrics for services. It enables automatic service-level metrics generation from distributed traces.
+The Spanmetrics Connector derives Request, Error, and Duration (R.E.D) metrics from span data, providing service-level performance indicators.
 
 **Reference**: [Spanmetrics Connector Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/connector/spanmetricsconnector/README.md)

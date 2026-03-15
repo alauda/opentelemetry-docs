@@ -4,52 +4,52 @@ weight: 90
 
 # Extensions
 
-Extensions provide auxiliary functionality to the Collector without directly processing telemetry data. They handle tasks such as authentication, health monitoring, and performance profiling, enhancing the Collector's operational capabilities.
+Extensions enhance the Collector with supplementary capabilities beyond core data processing. For instance, they can provide automatic authentication for receivers and exporters.
 
 ## BearerTokenAuth Extension
 
-The BearerTokenAuth Extension provides bearer token authentication for securing communication between the Collector and external systems. It manages token-based authentication credentials.
+The BearerTokenAuth Extension provides token-based authentication for HTTP and gRPC receivers and exporters. It can be configured for both client-side and server-side authentication and works with traces, metrics, and logs.
 
 **Reference**: [BearerTokenAuth Extension Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/extension/bearertokenauthextension/README.md)
 
 ## OAuth2Client Extension
 
-The OAuth2Client Extension implements OAuth 2.0 client authentication for the Collector. It handles token acquisition and renewal for secure communication with OAuth-protected backends.
+The OAuth2Client Extension handles OAuth 2.0 authentication for HTTP and gRPC exporters, managing token acquisition and refresh automatically. It works with traces, metrics, and logs.
 
 **Reference**: [OAuth2Client Extension Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/extension/oauth2clientauthextension/README.md)
 
 ## File Storage Extension
 
-The File Storage Extension provides persistent storage capabilities for Collector components. It's essential for components that need to maintain state across restarts, such as the Tail Sampling Processor.
+The File Storage Extension maintains persistent state on the local file system, including the send queue for HTTP- and gRPC-based OTLP exporters. It requires read-write access to a designated directory and supports traces, metrics, and logs.
 
 **Reference**: [File Storage Extension Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/extension/storage/filestorage/README.md)
 
 ## OIDC Auth Extension
 
-The OIDC Auth Extension implements OpenID Connect authentication for securing Collector endpoints. It validates OIDC tokens and enforces authentication policies.
+The OIDC Auth Extension verifies incoming receiver requests through the OpenID Connect (OIDC) protocol. It checks the ID token from the authorization header against the configured issuer and enriches the request's authentication context accordingly.
 
 **Reference**: [OIDC Auth Extension Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/extension/oidcauthextension/README.md)
 
 ## Jaeger Remote Sampling Extension
 
-The Jaeger Remote Sampling Extension provides remote sampling configuration for Jaeger clients. It allows centralized management of sampling strategies across distributed applications.
+The Jaeger Remote Sampling Extension exposes sampling strategies via the Jaeger remote sampling API. It can be configured to either proxy requests to a remote sampling backend — such as a downstream Jaeger collector — or serve strategies from a local static JSON file.
 
 **Reference**: [Jaeger Remote Sampling Extension Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/extension/jaegerremotesampling/README.md)
 
 ## Performance Profiler Extension
 
-The Performance Profiler Extension enables CPU and memory profiling of the Collector itself. It's useful for diagnosing performance issues and optimizing Collector resource usage.
+The Performance Profiler Extension activates the Go `net/http/pprof` endpoint, allowing developers to capture performance profiles and diagnose service-level issues.
 
 **Reference**: [Performance Profiler Extension Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/extension/pprofextension/README.md)
 
 ## Health Check Extension
 
-The Health Check Extension exposes health check endpoints for monitoring Collector status. It provides liveness and readiness probes for Kubernetes deployments and load balancers.
+The Health Check Extension exposes an HTTP endpoint for monitoring the Collector's operational status. It is commonly used as a Kubernetes liveness and readiness probe.
 
 **Reference**: [Health Check Extension Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/extension/healthcheckextension/README.md)
 
 ## zPages Extension
 
-The zPages Extension provides in-process web pages for debugging and monitoring the Collector. It offers real-time visibility into pipeline statistics, running configurations, and component status.
+The zPages Extension serves an HTTP endpoint with real-time diagnostic data for instrumented components. It enables in-process debugging and gives visibility into traces and metrics without requiring an external backend, making it a useful tool for monitoring and troubleshooting the Collector's runtime behavior.
 
-**Reference**: [zPages Extension Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/extension/zpagesextension/README.md)
+**Reference**: [zPages Extension Documentation](https://github.com/open-telemetry/opentelemetry-collector/blob/main/extension/zpagesextension/README.md)

@@ -50,9 +50,9 @@ spec:
       prometheus:
         endpoint: 0.0.0.0:8889
         resource_to_telemetry_conversion:
-          enabled: true
+          enabled: true # by default resource attributes are dropped
     service:
-      pipelines:
+      pipelines: # [!code callout]
         traces:
           receivers: [otlp]
           processors: []
@@ -63,9 +63,9 @@ spec:
           exporters: [prometheus]
 ```
 
-:::note
-Components defined in the configuration but not referenced in the `service.pipelines` section remain inactive. A component must be added to at least one pipeline to function.
-:::
+<Callouts>
+1. Components defined in the configuration but not referenced in the `service.pipelines` section remain inactive. A component must be added to at least one pipeline to function.
+</Callouts>
 
 ## Configuration Parameters
 

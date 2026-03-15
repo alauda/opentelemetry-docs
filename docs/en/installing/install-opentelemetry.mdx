@@ -11,7 +11,9 @@ Installing the Alauda Build of OpenTelemetry v2 consists of the following steps:
 - Deploying the OpenTelemetry Collector instance
 
 :::warning
-Do not deploy the OpenTelemetry Collector in the same namespace as the Operator. Create a separate namespace for the Collector instance.
+- Do not install `Alauda Build of OpenTelemetry` and `Alauda Build of OpenTelemetry v2` in the same Kubernetes cluster, as this will result in functional conflicts.
+- Do not install `Alauda Service Mesh` and `Alauda Build of OpenTelemetry v2` in the same Kubernetes cluster, as this will result in functional conflicts (`Alauda Service Mesh v2` supports integration with `Alauda Build of OpenTelemetry v2`).
+- Do not deploy the OpenTelemetry Collector in the same namespace as the Operator. Create a separate namespace for the Collector instance.
 :::
 
 ## Installing the Alauda Build of OpenTelemetry v2 Operator
@@ -205,12 +207,26 @@ After successfully installing the Alauda Build of OpenTelemetry v2 Operator, dep
 Multiple OpenTelemetry Collector instances can coexist in separate namespaces. Each instance is independent and managed by the Operator.
 :::
 
+### Creating a namespace for the Collector
+
+Before deploying the OpenTelemetry Collector, create a dedicated namespace for the Collector instance. The Collector must not be deployed in the same namespace as the Operator.
+
+:::tip
+The `opentelemetry-collector` namespace used throughout this guide is an example. You can create and use a namespace with any name that suits your organization's naming conventions.
+:::
+
+  ```bash
+  kubectl get namespace opentelemetry-collector || \
+    kubectl create namespace opentelemetry-collector
+  ```
+
 ### Deploying via the web console
 
 **Prerequisites**
 
 - The Alauda Build of OpenTelemetry v2 Operator must be installed.
 - You are logged in to the Alauda Container Platform web console as **cluster-admin**.
+- A dedicated namespace for the Collector instance has been created.
 
 **Procedure**
 
@@ -221,30 +237,56 @@ Multiple OpenTelemetry Collector instances can coexist in separate namespaces. E
 5. Click **All Instances** tab.
 6. Click **Create**.
 7. Locate and Select **OpenTelemetryCollector** and then click **Create**.
-8. Select the target namespace from the **Namespace** drop down.
+8. Select the Collector namespace from the **Namespace** drop down.
 9. Click **YAML** tab.
-10. Add the following YAML snippet to the **YAML** code editor:
+10. Customize the `OpenTelemetryCollector` custom resource (CR) in the **YAML** code editor:
+
+    Example `OpenTelemetryCollector` CR
 
     ```yaml
     apiVersion: opentelemetry.io/v1beta1
     kind: OpenTelemetryCollector
     metadata:
       name: otel
+      namespace: opentelemetry-collector # [!code callout]
     spec:
+      mode: deployment # [!code callout]
       config:
-        receivers:
+        receivers: # [!code callout]
           otlp:
             protocols:
               grpc: {}
               http: {}
-        exporters:
+          jaeger:
+            protocols:
+              grpc: {}
+              thrift_binary: {}
+              thrift_compact: {}
+              thrift_http: {}
+          zipkin: {}
+        processors: # [!code callout]
+          batch: {}
+          memory_limiter:
+            check_interval: 1s
+            limit_percentage: 50
+            spike_limit_percentage: 30
+        exporters: # [!code callout]
           debug: {}
         service:
           pipelines:
             traces:
-              receivers: [otlp]
+              receivers: [otlp, jaeger, zipkin]
+              processors: [memory_limiter, batch]
               exporters: [debug]
     ```
+
+    <Callouts>
+    1. The namespace for deploying the OpenTelemetry Collector instance. Here, `opentelemetry-collector` is used as an example; replace it with the namespace you created for the Collector. This namespace must be different from the Operator's namespace.
+    2. The Collector deployment mode. Supported values: `deployment` (default), `daemonset`, `statefulset`, or `sidecar`.
+    3. Receivers define how telemetry data enters the Collector. This example configures OTLP, Jaeger, and Zipkin protocol receivers.
+    4. Processors handle data processing between receiving and exporting. This example uses `batch` for batching telemetry data and `memory_limiter` for controlling memory usage.
+    5. Exporters define the telemetry data destinations. This example uses the `debug` exporter, which outputs data to the Collector logs.
+    </Callouts>
 
 11. Click **Create**.
 
@@ -258,18 +300,13 @@ Wait until the pods of the OpenTelemetry Collector are running.
 
 - An active ACP CLI (`kubectl`) session by a cluster administrator with the `cluster-admin` role.
 - The Alauda Build of OpenTelemetry v2 Operator must be installed.
+- A dedicated namespace for the Collector instance has been created.
 
 **Procedure**
 
-1. Create a namespace for the Collector:
+1. Customize and apply the `OpenTelemetryCollector` custom resource (CR):
 
-    ```bash {name=install-otel:create-namespace-collector}
-    kubectl create namespace opentelemetry-collector
-    ```
-
-2. Create the OpenTelemetryCollector resource:
-
-    ```bash {name=install-otel:create-collector}
+    ```bash
     kubectl apply -f - <<EOF
     apiVersion: opentelemetry.io/v1beta1
     kind: OpenTelemetryCollector
@@ -277,25 +314,44 @@ Wait until the pods of the OpenTelemetry Collector are running.
       name: otel
       namespace: opentelemetry-collector
     spec:
+      mode: deployment
       config:
         receivers:
           otlp:
             protocols:
               grpc: {}
               http: {}
+          jaeger:
+            protocols:
+              grpc: {}
+              thrift_binary: {}
+              thrift_compact: {}
+              thrift_http: {}
+          zipkin: {}
+        processors:
+          batch: {}
+          memory_limiter:
+            check_interval: 1s
+            limit_percentage: 50
+            spike_limit_percentage: 30
         exporters:
           debug: {}
         service:
           pipelines:
             traces:
-              receivers: [otlp]
+              receivers: [otlp, jaeger, zipkin]
+              processors: [memory_limiter, batch]
               exporters: [debug]
     EOF
     ```
 
-3. Wait for the Collector pods to be ready:
+    :::note
+    For detailed field descriptions of the `OpenTelemetryCollector` CR, see the CR example in the web console deployment section above.
+    :::
 
-    ```bash {name=install-otel:wait-collector-ready}
+2. Wait for the Collector pods to be ready:
+
+    ```bash
     kubectl wait --for=condition=Ready pod -l app.kubernetes.io/managed-by=opentelemetry-operator -n opentelemetry-collector --timeout=3m
     ```
 
@@ -303,13 +359,13 @@ Wait until the pods of the OpenTelemetry Collector are running.
 
 Check that the Collector pods are running:
 
-```shell {name=install-otel:verify-collector}
+```shell
 kubectl get pods -n opentelemetry-collector
 ```
 
 **Example output**
 
-```bash {name=install-otel:verify-collector-output}
-NAME                        READY   STATUS    RESTARTS   AGE
-otel-collector-0            1/1     Running   0          1m
+```bash
+NAME                              READY   STATUS    RESTARTS   AGE
+otel-collector-7877b4cdcf-bj7br   1/1     Running   0          69s
 ```

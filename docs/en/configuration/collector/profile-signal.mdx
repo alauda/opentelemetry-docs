@@ -4,56 +4,63 @@ weight: 30
 
 # Profile Signal
 
-The OpenTelemetry Collector supports profiling signals, which enable continuous profiling data collection from your applications. Profiling provides deep insights into application performance by capturing detailed information about CPU usage, memory allocation, and execution patterns.
+The Profile signal represents a new telemetry data type designed to capture detailed information about code execution patterns and resource consumption within applications.
 
-## Overview
+:::warning
+The Profile signal is a Technology Preview feature.
+:::
 
-Profile signals complement traditional observability data (traces, metrics, and logs) by offering granular visibility into application behavior at the code level. This capability helps identify performance bottlenecks, memory leaks, and inefficient code paths.
+By leveraging the Profile signal, you can identify performance bottlenecks and resource inefficiencies at the function level, down to specific lines of code. When combined with traces, metrics, and logs, profiling data provides a holistic view of application behavior, enabling precise performance analysis and targeted optimization in production environments.
+
+## Profiling Targets
+
+Profiling can be applied at two distinct levels:
+
+- **Application profiling**: Helps developers assess code performance, catch regressions early, and track resource consumption patterns such as CPU and memory usage, making it easier to locate and optimize inefficient code paths.
+- **Operating system profiling**: Offers visibility into lower-level system behavior, including system calls, kernel operations, and I/O wait times, which can inform infrastructure tuning and cost optimization efforts.
 
 ## Configuration
 
-To enable profile signal collection in the OpenTelemetry Collector, you need to configure appropriate receivers that support profiling data formats. The Collector can ingest profiling data through various protocols and forward it to backend systems for analysis and visualization.
+The following custom resource demonstrates how to enable the Profile signal in an OpenTelemetry Collector instance:
 
-**Example configuration with profiling support:**
+TODO: try to test.
 
 ```yaml
 apiVersion: opentelemetry.io/v1beta1
 kind: OpenTelemetryCollector
 metadata:
-  name: profiling-collector
-  namespace: observability
+  name: otel-profiles-collector
+  namespace: otel-profile
 spec:
-  mode: deployment
+  args:
+    feature-gates: service.profilesSupport # [!code callout]
   config:
     receivers:
-      otlp:
+      otlp: # [!code callout]
         protocols:
-          grpc: {}
-          http: {}
+          grpc:
+            endpoint: "0.0.0.0:4317"
+          http:
+            endpoint: "0.0.0.0:4318"
     exporters:
-      otlp:
-        endpoint: backend.observability.svc:4317
+      otlp/pyroscope: # [!code callout]
+        endpoint: "pyroscope.pyroscope-monitoring.svc.cluster.local:4317"
     service:
-      pipelines:
-        traces:
+      pipelines: # [!code callout]
+        profiles:
           receivers: [otlp]
-          exporters: [otlp]
-        metrics:
-          receivers: [otlp]
-          exporters: [otlp]
+          exporters: [otlp/pyroscope]
+# ...
 ```
 
-:::note
-Profile signal support depends on the specific receivers and exporters you configure. Ensure your backend system supports profiling data ingestion and visualization.
-:::
+<Callouts>
+1. Enables the profiles feature by setting the `feature-gates` argument to `service.profilesSupport`.
+2. Configures the OTLP Receiver so that the Collector can accept profile data over gRPC and HTTP.
+3. Specifies the export destination for profile data, such as an OTLP-compatible profiling backend.
+4. Defines a `profiles` pipeline that routes received profile data to the configured exporter.
+</Callouts>
 
-## Use Cases
+## Additional Resources
 
-Profile signals are particularly valuable for:
-
-- **Performance optimization**: Identifying CPU-intensive functions and optimizing hot code paths
-- **Memory analysis**: Detecting memory leaks and understanding allocation patterns
-- **Latency investigation**: Correlating performance issues with specific code execution
-- **Resource planning**: Understanding resource consumption patterns for capacity planning
-
-By integrating profiling data with traces and metrics, you can achieve comprehensive observability across your application stack.
+- [OpenTelemetry Profiles](https://opentelemetry.io/docs/specs/otel/profiles/)
+- [Profiles Attributes](https://opentelemetry.io/docs/specs/semconv/attributes-registry/profile/)

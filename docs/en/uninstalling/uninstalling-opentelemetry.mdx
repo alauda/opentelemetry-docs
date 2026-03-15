@@ -13,7 +13,6 @@ Uninstalling the Alauda Build of OpenTelemetry v2 Operator from an Alauda Contai
   - `Instrumentation` resources
   - `OpenTelemetryCollector` resources
   - Alauda Build of OpenTelemetry v2 Operator
-  - `opentelemetry-operator2` namespace
 
 You can also optionally remove the OpenTelemetry custom resource definitions (CRDs).
 
@@ -51,12 +50,6 @@ The Alauda Build of OpenTelemetry v2 Operator can be uninstalled using the Alaud
     2.  In the confirmation prompt, read the uninstall notice: *Removing the operator will not remove any of its custom resource definitions or managed resources. If you have created a resource instance, you need to delete it manually.*
     3.  Click **Uninstall**.
 
-### Delete the `opentelemetry-operator2` namespace
-
-    ```shell
-    kubectl delete ns opentelemetry-operator2
-    ```
-
 </Steps>
 
 ## Uninstalling via the CLI
@@ -65,7 +58,6 @@ To uninstall the Alauda Build of OpenTelemetry v2 Operator from an Alauda Contai
 
   - `Instrumentation` resources
   - `OpenTelemetryCollector` resources
-  - `opentelemetry-operator2` namespace
   - Alauda Build of OpenTelemetry v2 Operator
 
 Optionally, you can also delete the OpenTelemetry custom resource definitions (CRDs).
@@ -83,6 +75,8 @@ The Alauda Build of OpenTelemetry v2 Operator can be uninstalled using the Alaud
     ```shell {name=uninstall-otel:get-instrumentation}
     kubectl get instrumentation --all-namespaces
     ```
+
+    TODO: may use other example.
 
     **Example output**
 
@@ -114,8 +108,8 @@ The Alauda Build of OpenTelemetry v2 Operator can be uninstalled using the Alaud
     **Example output**
 
     ```shell {name=uninstall-otel:get-collector-output}
-    NAMESPACE   NAME   MODE         VERSION   READY   AGE
-    default     otel   deployment   0.146.0   True    1d
+    NAMESPACE                 NAME   MODE         VERSION   READY   AGE     IMAGE                                                           MANAGEMENT
+    opentelemetry-collector   otel   deployment   0.146.0   1/1     9m35s   build-harbor.alauda.cn/asm/opentelemetry-collector:0.147.0-r0   managed
     ```
 
 2.  Use the namespace and name from the previous command's output to replace `<namespace>` and `<name>`, and then run the following to remove each resource:
@@ -130,20 +124,6 @@ The Alauda Build of OpenTelemetry v2 Operator can be uninstalled using the Alaud
     opentelemetrycollector.opentelemetry.io "otel" deleted
     ```
 
-### Delete the `opentelemetry-operator2` namespace
-
-1.  Delete the `opentelemetry-operator2` namespace with the following command:
-
-    ```shell {name=uninstall-otel:delete-namespace}
-    kubectl delete ns opentelemetry-operator2
-    ```
-
-    **Example output**
-
-    ```shell {name=uninstall-otel:delete-namespace-output}
-    namespace "opentelemetry-operator2" deleted
-    ```
-
 ### Uninstall the Alauda Build of OpenTelemetry v2 Operator
 
 1.  Delete the `opentelemetry-operator2` subscription:
@@ -155,7 +135,7 @@ The Alauda Build of OpenTelemetry v2 Operator can be uninstalled using the Alaud
     **Example output**
 
     ```shell {name=uninstall-otel:delete-subscription-output}
-    subscription.operators.coreos.com "opentelemetry-operator2" deleted from opentelemetry-operator2 namespace
+    subscription.operators.coreos.com "opentelemetry-operator2" deleted
     ```
 
 </Steps>
