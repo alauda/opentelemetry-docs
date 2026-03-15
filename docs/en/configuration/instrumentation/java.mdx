@@ -1,0 +1,289 @@
+---
+weight: 80
+---
+
+# Java Auto-instrumentation
+
+The Java auto-instrumentation provides comprehensive telemetry collection for Java applications using the OpenTelemetry Java agent. This instrumentation automatically captures traces, metrics, and logs from Java applications and popular frameworks without requiring code modifications.
+
+## How Java Auto-instrumentation Works
+
+The Operator injects the OpenTelemetry Java agent into Java application containers as a Java agent JAR file. The agent uses bytecode instrumentation to automatically instrument Java classes at runtime, capturing telemetry data from:
+
+- HTTP servers and clients (Servlet, Spring MVC, JAX-RS, etc.)
+- Database clients (JDBC, Hibernate, etc.)
+- Messaging systems (JMS, Kafka, RabbitMQ, etc.)
+- RPC frameworks (gRPC, Apache Dubbo, etc.)
+- Caching libraries (Redis, Memcached, etc.)
+- And many other popular Java libraries and frameworks
+
+## Enabling Java Instrumentation
+
+To enable auto-instrumentation for Java applications, annotate your pod or namespace:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: java-app
+  annotations:
+    instrumentation.opentelemetry.io/inject-java: "true"
+spec:
+  containers:
+  - name: app
+    image: myjavaapp:latest
+```
+
+The Operator automatically injects the Java agent and configures the JVM to load it at startup using the `-javaagent` flag.
+
+## Java-specific Configuration
+
+### JVM Arguments
+
+The Operator automatically adds the necessary JVM arguments to load the OpenTelemetry Java agent:
+
+```
+-javaagent:/otel-auto-instrumentation-java/javaagent.jar
+```
+
+Additional JVM arguments can be configured through the Instrumentation CR or directly in your deployment specification.
+
+### Agent Configuration
+
+You can configure the Java agent behavior using environment variables in the Instrumentation CR:
+
+```yaml
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: java-instrumentation
+spec:
+  java:
+    image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:latest
+    env:
+      - name: OTEL_JAVAAGENT_DEBUG
+        value: "false"
+      - name: OTEL_INSTRUMENTATION_COMMON_DEFAULT_ENABLED
+        value: "true"
+  exporter:
+    endpoint: http://otel-collector:4318
+  propagators:
+    - tracecontext
+    - baggage
+  sampler:
+    type: parentbased_traceidratio
+    argument: "1.0"
+```
+
+### Resource Requirements
+
+Specify resource limits for the Java agent init container:
+
+```yaml
+spec:
+  java:
+    image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:latest
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+```
+
+## Java Agent Environment Variables
+
+The following environment variables control Java agent behavior:
+
+### Instrumentation Control
+
+- `OTEL_JAVAAGENT_ENABLED` - Enable or disable the Java agent (default: `true`)
+- `OTEL_JAVAAGENT_DEBUG` - Enable debug logging for the agent (default: `false`)
+- `OTEL_INSTRUMENTATION_COMMON_DEFAULT_ENABLED` - Enable all instrumentations by default (default: `true`)
+
+### Specific Instrumentation Control
+
+You can enable or disable specific instrumentations:
+
+- `OTEL_INSTRUMENTATION_JDBC_ENABLED` - JDBC instrumentation
+- `OTEL_INSTRUMENTATION_SPRING_WEB_ENABLED` - Spring Web instrumentation
+- `OTEL_INSTRUMENTATION_KAFKA_ENABLED` - Kafka instrumentation
+- `OTEL_INSTRUMENTATION_REDIS_ENABLED` - Redis instrumentation
+
+Example configuration:
+
+```yaml
+spec:
+  java:
+    env:
+      - name: OTEL_INSTRUMENTATION_JDBC_ENABLED
+        value: "true"
+      - name: OTEL_INSTRUMENTATION_KAFKA_ENABLED
+        value: "true"
+      - name: OTEL_INSTRUMENTATION_REDIS_ENABLED
+        value: "false"
+```
+
+### Extension Configuration
+
+Configure additional agent extensions:
+
+- `OTEL_JAVAAGENT_EXTENSIONS` - Path to additional agent extensions
+- `OTEL_JAVAAGENT_CONFIGURATION_FILE` - Path to agent configuration file
+
+## Advanced Configuration
+
+### Custom Agent Image
+
+You can specify a custom Java agent image:
+
+```yaml
+spec:
+  java:
+    image: my-registry.com/custom-java-agent:1.0.0
+```
+
+### Volume Mounts
+
+The agent is mounted into the application container at `/otel-auto-instrumentation-java/`. Ensure your application has read access to this path.
+
+### Container-specific Injection
+
+For multi-container pods, specify which containers should be instrumented:
+
+```yaml
+metadata:
+  annotations:
+    instrumentation.opentelemetry.io/inject-java: "true"
+    instrumentation.opentelemetry.io/container-names: "app,worker"
+```
+
+## Supported Java Versions
+
+The OpenTelemetry Java agent supports:
+
+- Java 8 and later (including Java 11, 17, 21)
+- Both HotSpot and OpenJ9 JVMs
+- GraalVM native images (with limitations)
+
+:::note
+For GraalVM native images, automatic instrumentation has limitations. Consider using manual instrumentation for native images.
+:::
+
+## Performance Considerations
+
+The Java agent introduces minimal overhead:
+
+- Typical CPU overhead: 1-3%
+- Memory overhead: 50-100 MB depending on application size
+- Startup time increase: 1-2 seconds
+
+To minimize performance impact:
+
+1. Disable unused instrumentations
+2. Configure appropriate sampling rates
+3. Use batch span processing
+4. Monitor agent memory usage
+
+## Troubleshooting
+
+### Verifying Agent Injection
+
+Check that the agent was injected successfully:
+
+```bash
+kubectl describe pod <pod-name>
+```
+
+Look for the `-javaagent` argument in the container command.
+
+### Enabling Debug Logging
+
+Enable debug logging to troubleshoot issues:
+
+```yaml
+spec:
+  java:
+    env:
+      - name: OTEL_JAVAAGENT_DEBUG
+        value: "true"
+      - name: OTEL_LOG_LEVEL
+        value: "debug"
+```
+
+### Common Issues
+
+**Agent not loading**: Verify that the init container completed successfully and the agent JAR is present in the shared volume.
+
+**Missing traces**: Check that the exporter endpoint is correct and accessible from the application pod.
+
+**High memory usage**: Reduce the number of enabled instrumentations or adjust JVM heap settings.
+
+## Example Configuration
+
+Complete example for Java application instrumentation:
+
+```yaml
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: java-instrumentation
+  namespace: production
+spec:
+  java:
+    image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:latest
+    env:
+      - name: OTEL_JAVAAGENT_DEBUG
+        value: "false"
+      - name: OTEL_INSTRUMENTATION_JDBC_ENABLED
+        value: "true"
+      - name: OTEL_INSTRUMENTATION_KAFKA_ENABLED
+        value: "true"
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+  exporter:
+    endpoint: http://otel-collector.observability.svc:4318
+  env:
+    - name: OTEL_SERVICE_NAME
+      value: my-java-service
+    - name: OTEL_RESOURCE_ATTRIBUTES
+      value: deployment.environment=production
+    - name: OTEL_TRACES_SAMPLER
+      value: parentbased_traceidratio
+    - name: OTEL_TRACES_SAMPLER_ARG
+      value: "0.1"
+  propagators:
+    - tracecontext
+    - baggage
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: java-app
+  namespace: production
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: java-app
+  template:
+    metadata:
+      labels:
+        app: java-app
+      annotations:
+        instrumentation.opentelemetry.io/inject-java: "true"
+    spec:
+      containers:
+      - name: app
+        image: myjavaapp:latest
+        ports:
+        - containerPort: 8080
+```
+
+This configuration provides comprehensive instrumentation for Java applications with optimized performance and resource usage.

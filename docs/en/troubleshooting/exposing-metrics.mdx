@@ -1,0 +1,145 @@
+---
+weight: 20
+---
+
+# Exposing the metrics
+
+The OpenTelemetry Collector exposes metrics about the volume of data it has processed. These metrics are valuable for monitoring the Collector's operational status and diagnosing data collection issues.
+
+## Available metrics
+
+The Collector exposes the following metrics related to data processing volume:
+
+**Spans metrics**
+
+- `otelcol_receiver_accepted_spans`: Number of spans accepted by receivers
+- `otelcol_receiver_refused_spans`: Number of spans refused by receivers
+- `otelcol_exporter_sent_spans`: Number of spans sent by exporters
+- `otelcol_exporter_enqueue_failed_spans`: Number of spans that failed to enqueue in exporters
+
+**Logs metrics**
+
+- `otelcol_receiver_accepted_logs`: Number of log records accepted by receivers
+- `otelcol_receiver_refused_logs`: Number of log records refused by receivers
+- `otelcol_exporter_sent_logs`: Number of log records sent by exporters
+- `otelcol_exporter_enqueue_failed_logs`: Number of log records that failed to enqueue in exporters
+
+**Metrics metrics**
+
+- `otelcol_receiver_accepted_metrics`: Number of metric data points accepted by receivers
+- `otelcol_receiver_refused_metrics`: Number of metric data points refused by receivers
+- `otelcol_exporter_sent_metrics`: Number of metric data points sent by exporters
+- `otelcol_exporter_enqueue_failed_metrics`: Number of metric data points that failed to enqueue in exporters
+
+## Accessing the metrics
+
+You can access these metrics in multiple ways to monitor the Collector's operational status.
+
+### Using port-forward
+
+The simplest approach is to use `kubectl port-forward` to forward the Collector's metrics port to your local machine:
+
+```bash
+kubectl port-forward -n <namespace> <collector-pod-name> 8888:8888
+```
+
+Then access `http://localhost:8888/metrics` in your browser to view the metrics.
+
+### Using ServiceMonitor
+
+If Prometheus Operator is installed in your cluster, you can create a `ServiceMonitor` resource to automatically scrape the Collector's metrics:
+
+```yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: otel-collector
+  namespace: opentelemetry-collector
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: otel-collector
+  endpoints:
+  - port: monitoring
+    interval: 30s
+    path: /metrics
+```
+
+:::note
+Ensure that the Collector's Service exposes the metrics port (typically 8888).
+:::
+
+## Configuring metrics exposure
+
+You can configure detailed settings for metrics exposure in the `OpenTelemetryCollector` custom resource:
+
+```yaml
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel
+  namespace: opentelemetry-collector
+spec:
+  config:
+    service:
+      telemetry:
+        metrics:
+          level: detailed
+          address: 0.0.0.0:8888
+```
+
+**Configuration parameters**
+
+- `level`: Metrics detail level, options are `none`, `basic`, `normal`, `detailed`
+- `address`: Address and port where metrics are exposed
+
+## Analyzing metrics
+
+By analyzing these metrics, you can:
+
+**Monitor data flow**
+
+- Compare `accepted` and `refused` metrics to identify data rejection scenarios
+- Monitor `sent` metrics to confirm successful data export
+- Check `enqueue_failed` metrics to discover queue issues
+
+**Diagnose performance problems**
+
+- If `refused` metrics continuously increase, the Collector may be overloaded
+- If `enqueue_failed` metrics increase, queue size may need adjustment
+- If there is a large gap between `sent` and `accepted` metrics, check exporter configuration
+
+**Example queries**
+
+Use Prometheus Query Language (PromQL) to analyze metrics:
+
+```shell
+# Calculate span acceptance rate
+rate(otelcol_receiver_accepted_spans[5m])
+
+# Calculate span refusal rate
+rate(otelcol_receiver_refused_spans[5m])
+
+# Calculate export success rate
+rate(otelcol_exporter_sent_spans[5m]) / rate(otelcol_receiver_accepted_spans[5m])
+```
+
+## Troubleshooting metrics issues
+
+**Cannot access metrics endpoint**
+
+If you cannot access the metrics endpoint, check:
+
+1. Whether the Collector pod is running normally
+2. Whether the metrics port is correctly configured
+3. Whether network policies allow access to the metrics port
+4. Whether the Service correctly exposes the metrics port
+
+**Inaccurate metrics data**
+
+If metrics data appears inaccurate:
+
+1. Confirm the metrics level is set to `detailed`
+2. Check whether the Collector configuration is correct
+3. Verify time synchronization is working properly
+4. Review Collector logs for error messages

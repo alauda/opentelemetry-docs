@@ -1,0 +1,106 @@
+---
+weight: 20
+---
+
+# Configuration Options
+
+The OpenTelemetry Collector architecture consists of five primary component types that work together to handle telemetry data throughout its lifecycle:
+
+- **Receivers**: Components that ingest telemetry data into the Collector
+- **Processors**: Components that transform, filter, or enrich data as it flows through the pipeline
+- **Exporters**: Components that send processed data to backend systems or destinations
+- **Connectors**: Components that link pipeline segments by acting as both exporters and receivers
+- **Extensions**: Optional components that provide auxiliary functionality without directly processing telemetry data
+
+## Component Configuration
+
+You can define multiple instances of each component type within a custom resource YAML file. However, components must be explicitly enabled through pipeline definitions in the `spec.config.service` section to become active.
+
+:::tip
+As a best practice, only enable the components you actually need. This reduces resource consumption and simplifies troubleshooting.
+:::
+
+## Configuration Example
+
+The following example demonstrates a basic OpenTelemetry Collector configuration with OTLP receivers and multiple exporters:
+
+```yaml
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: cluster-collector
+  namespace: tracing-system
+spec:
+  mode: deployment
+  observability:
+    metrics:
+      enableMetrics: true
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc: {}
+          http: {}
+    processors: {}
+    exporters:
+      otlp:
+        endpoint: otel-collector-headless.tracing-system.svc:4317
+        tls:
+          ca_file: "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
+      prometheus:
+        endpoint: 0.0.0.0:8889
+        resource_to_telemetry_conversion:
+          enabled: true # by default resource attributes are dropped
+    service:
+      pipelines: # [!code callout]
+        traces:
+          receivers: [otlp]
+          processors: []
+          exporters: [otlp]
+        metrics:
+          receivers: [otlp]
+          processors: []
+          exporters: [prometheus]
+```
+
+<Callouts>
+1. Components defined in the configuration but not referenced in the `service.pipelines` section remain inactive. A component must be added to at least one pipeline to function.
+</Callouts>
+
+## Configuration Parameters
+
+The following table describes the main configuration parameters used by the Operator to define the OpenTelemetry Collector:
+
+| Parameter | Description | Available Options | Default |
+|-----------|-------------|-------------------|---------|
+| `receivers` | Defines how data enters the Collector. At least one receiver must be enabled in a pipeline for valid configuration. | otlp, jaeger, prometheus, zipkin, kafka, opencensus | None |
+| `processors` | Defines data transformation operations applied between receiving and exporting. Processors are optional. | batch, memory_limiter, resourcedetection, attributes, span, k8sattributes, filter, routing | None |
+| `exporters` | Defines destinations for processed data. At least one exporter must be enabled in a pipeline for valid configuration. | otlp, otlphttp, debug, prometheus, kafka | None |
+| `connectors` | Defines components that join pipeline pairs by consuming data as exporters and emitting data as receivers. | spanmetrics, count, routing, forward | None |
+| `extensions` | Defines optional components for auxiliary tasks that don't involve telemetry data processing. | bearertokenauth, oauth2client, pprof, health_check, memory_ballast, zpages | None |
+| `service.pipelines` | Enables components by adding them to pipelines. Components must be listed here to become active. | N/A | None |
+
+## Pipeline Configuration
+
+Pipelines are defined under `service.pipelines` and specify the flow of telemetry data through the Collector. Each pipeline type (traces, metrics, logs) can have its own set of receivers, processors, and exporters.
+
+**Example pipeline configuration:**
+
+```yaml
+service:
+  pipelines:
+    traces:
+      receivers: [otlp, jaeger]
+      processors: [batch, memory_limiter]
+      exporters: [otlp, debug]
+    metrics:
+      receivers: [otlp, prometheus]
+      processors: [batch]
+      exporters: [prometheus]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp]
+```
+
+Each pipeline independently processes its telemetry type, allowing you to configure different processing logic for traces, metrics, and logs based on your observability requirements.

@@ -1,0 +1,42 @@
+---
+weight: 100
+---
+
+# Python Auto-instrumentation
+
+The Python auto-instrumentation provides automatic telemetry collection for Python applications, including popular frameworks like Django, Flask, FastAPI, and many others. This instrumentation captures traces, metrics, and logs from Python applications without requiring code modifications.
+
+The Operator injects the OpenTelemetry Python automatic instrumentation into Python application containers, configuring it to instrument common libraries and frameworks automatically. This enables comprehensive observability for Python workloads running in Kubernetes.
+
+## Enabling Python Instrumentation
+
+To enable auto-instrumentation for Python applications, annotate your pod or namespace:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: python-app
+  annotations:
+    instrumentation.opentelemetry.io/inject-python: "true"
+spec:
+  containers:
+  - name: app
+    image: mypythonapp:latest
+```
+
+The Operator will automatically inject the instrumentation components and configure the Python runtime to load them at startup.
+
+## Configuration Reference
+
+For detailed configuration options, supported libraries, and advanced usage scenarios, refer to the official OpenTelemetry Operator documentation:
+
+**[Python Auto-instrumentation Documentation](https://github.com/open-telemetry/opentelemetry-operator?tab=readme-ov-file#using-python-autoinstrumentation)**
+
+The official documentation provides comprehensive information about:
+
+- Supported Python versions
+- Configuration parameters and environment variables
+- Instrumented libraries and frameworks
+- Performance considerations
+- Troubleshooting guidance

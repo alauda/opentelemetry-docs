@@ -1,0 +1,55 @@
+---
+weight: 70
+---
+
+# Exporters
+
+Exporters deliver telemetry data to one or more backend destinations. They can operate in push or pull mode and are not configured by default — at least one must be defined. Each exporter may support one or more signal types. While some exporters work with their defaults, most require you to specify at least the target endpoint and security parameters.
+
+## OTLP gRPC Exporter
+
+The OTLP gRPC Exporter sends traces and metrics over the OpenTelemetry Protocol (OTLP) using gRPC transport.
+
+**Reference**: [OTLP Exporter Documentation](https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/otlpexporter/README.md)
+
+## OTLP HTTP Exporter
+
+The OTLP HTTP Exporter sends traces and metrics over the OpenTelemetry Protocol (OTLP) using HTTP transport.
+
+**Reference**: [OTLP HTTP Exporter Documentation](https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/otlphttpexporter/README.md)
+
+## Debug Exporter
+
+The Debug Exporter writes traces and metrics to standard output for troubleshooting purposes.
+
+**Reference**: [Debug Exporter Documentation](https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/debugexporter/README.md)
+
+## Load Balancing Exporter
+
+The Load Balancing Exporter distributes spans, metrics, and logs across backends in a consistent manner based on the configured `routing_key`.
+
+**Reference**: [Load Balancing Exporter Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/exporter/loadbalancingexporter/README.md)
+
+## Prometheus Exporter
+
+The Prometheus Exporter exposes metrics for scraping in Prometheus or OpenMetrics format.
+
+**Reference**: [Prometheus Exporter Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/exporter/prometheusexporter/README.md)
+
+## Prometheus Remote Write Exporter
+
+The Prometheus Remote Write Exporter pushes metrics to backends that support the Prometheus Remote Write protocol.
+
+**Reference**: [Prometheus Remote Write Exporter Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/exporter/prometheusremotewriteexporter/README.md)
+
+## Kafka Exporter
+
+The Kafka Exporter publishes logs, metrics, and traces to Kafka topics. Because it uses a synchronous, non-batching producer, pairing it with the Batch Processor and queued retry mechanisms is recommended for improved throughput and reliability.
+
+**Reference**: [Kafka Exporter Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/exporter/kafkaexporter/README.md)
+
+## File Exporter
+
+The File Exporter persists telemetry data to local files, with support for rotation, compression, and multi-file output. You can also configure resource-attribute-based file naming for fine-grained output control.
+
+**Reference**: [File Exporter Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/exporter/fileexporter/README.md)

@@ -1,0 +1,31 @@
+---
+weight: 80
+---
+
+# Connectors
+
+Connectors bridge two pipelines by acting as an exporter on one end and a receiver on the other. They can handle the same or different signal types across the connected pipelines, and they may transform, summarize, replicate, or route the data that passes through them.
+
+## Count Connector
+
+The Count Connector produces count-based metrics by tallying trace spans, span events, metrics, metric data points, and log records that flow through the exporter pipeline.
+
+**Reference**: [Count Connector Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/connector/countconnector/README.md)
+
+## Routing Connector
+
+The Routing Connector directs logs, metrics, and traces to designated pipelines based on resource attribute values and routing rules expressed as OpenTelemetry Transformation Language (OTTL) statements.
+
+**Reference**: [Routing Connector Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/connector/routingconnector/README.md)
+
+## Forward Connector
+
+The Forward Connector joins two pipelines that share the same signal type into a single data flow.
+
+**Reference**: [Forward Connector Documentation](https://github.com/open-telemetry/opentelemetry-collector/blob/main/connector/forwardconnector/README.md)
+
+## Spanmetrics Connector
+
+The Spanmetrics Connector derives Request, Error, and Duration (R.E.D) metrics from span data, providing service-level performance indicators.
+
+**Reference**: [Spanmetrics Connector Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/connector/spanmetricsconnector/README.md)

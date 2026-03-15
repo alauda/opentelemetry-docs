@@ -1,0 +1,42 @@
+---
+weight: 10
+---
+
+# Alauda Build of OpenTelemetry v2 Overview
+
+Alauda Build of OpenTelemetry v2 is built upon the open source [OpenTelemetry](https://opentelemetry.io/) project, which provides a unified, standardized, and vendor-neutral approach to collecting telemetry data for cloud-native applications. This distribution offers comprehensive support for deploying and managing the OpenTelemetry Collector while streamlining workload instrumentation processes.
+
+## OpenTelemetry Collector
+
+The [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) serves as a versatile component capable of receiving, processing, and forwarding telemetry data across multiple formats. This makes it an essential tool for telemetry processing and ensuring interoperability between different telemetry systems. The Collector delivers a comprehensive solution for handling metrics, traces, and logs in a unified manner.
+
+### Collector Features
+
+The OpenTelemetry Collector provides several key capabilities:
+
+- **Multi-format support**: Accepts telemetry data in various formats from different sources
+- **Flexible processing**: Transforms and enriches telemetry data before forwarding
+- **Multiple export destinations**: Sends processed data to various backend systems
+- **Scalable architecture**: Supports both agent and gateway deployment modes
+- **Extensible design**: Allows custom receivers, processors, and exporters through plugins
+- **Auto-instrumentation**: Streamlines adding observability to applications, so developers don't need to manually instrument their code to collect basic telemetry.
+
+### Use Cases
+
+The OpenTelemetry Collector addresses several common telemetry scenarios:
+
+- **Centralized telemetry collection**: Aggregate telemetry data from multiple services and applications into a single pipeline
+- **Protocol translation**: Convert between different telemetry formats and protocols to ensure compatibility
+- **Data enrichment**: Add contextual information such as resource attributes and metadata to telemetry signals
+- **Backend abstraction**: Decouple applications from specific observability backends, enabling flexibility in tooling choices
+- **Traffic management**: Control and optimize telemetry data flow to reduce costs and improve performance
+
+## Integration with Distributed Tracing Platform
+
+Alauda Build of OpenTelemetry v2 integrates seamlessly with Alauda Build of Jaeger, enabling comprehensive observability across your infrastructure. This integration allows you to collect, process, and visualize traces alongside metrics for complete system visibility.
+
+## Limitations
+
+<Directive type="warning" title=" ">
+It is important to note that OpenTelemetry does not provide guarantees for telemetry data delivery. The framework also does not include built-in storage capabilities or query functionality. Organizations should implement appropriate backend systems for data persistence and analysis based on their specific requirements.
+</Directive>

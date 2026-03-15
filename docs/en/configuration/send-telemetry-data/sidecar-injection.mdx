@@ -1,0 +1,340 @@
+---
+weight: 10
+---
+
+# Sending Telemetry Data with Sidecar Injection
+
+The sidecar injection mode automatically deploys an OpenTelemetry Collector instance alongside your application containers within the same pod. This approach simplifies telemetry collection by enabling applications to send data to a local Collector instance without complex network configuration.
+
+## How Sidecar Injection Works
+
+When sidecar injection is enabled, the Alauda Build of OpenTelemetry Operator automatically:
+
+1. Injects a Collector container into your application pod during deployment
+2. Configures the Collector to receive telemetry data on localhost
+3. Establishes network connectivity between application and Collector containers
+4. Forwards processed telemetry data to backend systems like Alauda Build of Jaeger v2
+
+The sidecar Collector runs in the same network namespace as your application, making it accessible via `localhost` or `127.0.0.1`.
+
+## Prerequisites
+
+Before configuring sidecar injection, ensure you have:
+
+- **Alauda Build of OpenTelemetry Operator** installed in your cluster
+- **Alauda Build of Jaeger v2** deployed and accessible for receiving trace data
+- **Cluster permissions** - Cluster admin role or sufficient RBAC permissions to create ServiceAccounts, ClusterRoles, and ClusterRoleBindings
+- **Target namespace** - A namespace where your application and Collector will be deployed
+
+## Configuration Steps
+
+### Step 1: Create ServiceAccount
+
+Create a ServiceAccount for the sidecar Collector to use when accessing Kubernetes resources:
+
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: otel-collector-sidecar
+  namespace: observability
+```
+
+### Step 2: Configure RBAC Permissions
+
+Grant the ServiceAccount permissions required by Collector processors such as `k8sattributes` and `resourcedetection`:
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: otel-collector
+rules:
+- apiGroups: ["", "config.openshift.io"]
+  resources: ["pods", "namespaces", "infrastructures", "infrastructures/status"]
+  verbs: ["get", "watch", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: otel-collector
+subjects:
+- kind: ServiceAccount
+  name: otel-collector-sidecar
+  namespace: observability
+roleRef:
+  kind: ClusterRole
+  name: otel-collector
+  apiGroup: rbac.authorization.k8s.io
+```
+
+:::note
+The `config.openshift.io` API group is included for compatibility but may not be required in all Kubernetes distributions.
+:::
+
+### Step 3: Deploy the Sidecar Collector
+
+Create an OpenTelemetryCollector custom resource configured for sidecar mode:
+
+```yaml
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel-sidecar
+  namespace: observability
+spec:
+  serviceAccount: otel-collector-sidecar
+  mode: sidecar
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+    processors:
+      batch: {}
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 50
+        spike_limit_percentage: 30
+      resourcedetection:
+        detectors: [env, system]
+        timeout: 2s
+    exporters:
+      otlp:
+        endpoint: jaeger-production-collector:4317
+        tls:
+          insecure: true
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, resourcedetection, batch]
+          exporters: [otlp]
+```
+
+**Configuration breakdown:**
+
+- `mode: sidecar` - Enables sidecar injection mode
+- `receivers.otlp` - Accepts OTLP data via gRPC (port 4317) and HTTP (port 4318)
+- `processors.batch` - Batches telemetry data to reduce network overhead
+- `processors.memory_limiter` - Prevents memory exhaustion by limiting Collector memory usage
+- `processors.resourcedetection` - Enriches telemetry with environment and system metadata
+- `exporters.otlp` - Sends data to Jaeger collector using OTLP protocol
+- `endpoint: jaeger-production-collector:4317` - Replace `production` with your Jaeger instance name
+
+:::warning
+Replace `jaeger-production-collector` with the actual service name of your Jaeger collector. The format is typically `jaeger-<instance-name>-collector`.
+:::
+
+### Step 4: Enable Sidecar Injection
+
+To inject the Collector sidecar into your application pods, add the `sidecar.opentelemetry.io/inject` annotation.
+
+**Option A: Namespace-level injection**
+
+Enable sidecar injection for all pods in a namespace:
+
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: my-application
+  annotations:
+    sidecar.opentelemetry.io/inject: "observability/otel-sidecar"
+```
+
+**Option B: Pod-level injection**
+
+Enable sidecar injection for specific deployments:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+  namespace: my-application
+spec:
+  template:
+    metadata:
+      annotations:
+        sidecar.opentelemetry.io/inject: "observability/otel-sidecar"
+    spec:
+      containers:
+      - name: app
+        image: myapp:latest
+        env:
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://localhost:4318"
+        - name: OTEL_SERVICE_NAME
+          value: "my-application"
+```
+
+**Annotation format:**
+- `"true"` - Uses the default Collector in the same namespace
+- `"<collector-name>"` - Uses the specified Collector in the same namespace
+- `"<namespace>/<collector-name>"` - Uses the specified Collector from another namespace
+
+## Verification
+
+### Check Pod Status
+
+Verify that the sidecar container was injected successfully:
+
+```bash
+kubectl get pods -n my-application
+```
+
+You should see pods with `2/2` containers ready (application container + sidecar Collector).
+
+### View Collector Logs
+
+Check the Collector sidecar logs to verify it's receiving and exporting data:
+
+```bash
+kubectl logs -n my-application <pod-name> -c otc-container
+```
+
+Look for log entries indicating:
+- Receivers are listening on configured ports
+- Data is being received from the application
+- Data is being successfully exported to Jaeger
+
+### Verify Data in Jaeger
+
+Access the Jaeger UI to confirm traces are being received:
+
+1. Port-forward to the Jaeger query service
+2. Search for traces from your application using the service name
+3. Verify trace data includes expected spans and attributes
+
+## Configuration Options
+
+### Resource Limits
+
+Configure resource limits for the sidecar Collector to prevent it from consuming excessive pod resources:
+
+```yaml
+spec:
+  mode: sidecar
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+```
+
+### Custom Collector Configuration
+
+You can customize the Collector configuration for specific use cases:
+
+**Adding additional processors:**
+
+```yaml
+spec:
+  config:
+    processors:
+      batch:
+        timeout: 10s
+        send_batch_size: 1024
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 50
+        spike_limit_percentage: 30
+      k8sattributes:
+        extract:
+          metadata:
+            - k8s.namespace.name
+            - k8s.deployment.name
+            - k8s.pod.name
+```
+
+**Configuring multiple exporters:**
+
+```yaml
+spec:
+  config:
+    exporters:
+      otlp/jaeger:
+        endpoint: jaeger-production-collector:4317
+        tls:
+          insecure: true
+      logging:
+        loglevel: debug
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [otlp/jaeger, logging]
+```
+
+## Troubleshooting
+
+### Sidecar Not Injected
+
+If the sidecar container is not being injected into your pods:
+
+:::warning
+**Check the following:**
+- Verify the `sidecar.opentelemetry.io/inject` annotation is correctly set on the pod or namespace
+- Confirm the OpenTelemetryCollector CR has `mode: sidecar` configured
+- Check the Operator logs for injection errors: `kubectl logs -n opentelemetry-operator-system deployment/opentelemetry-operator-controller-manager`
+- Ensure the referenced Collector CR exists in the specified namespace
+:::
+
+### Application Cannot Connect to Collector
+
+If your application cannot send data to the sidecar Collector:
+
+- Verify the application is using `localhost` or `127.0.0.1` as the endpoint
+- Check that the application is using the correct port (4317 for gRPC, 4318 for HTTP)
+- Review application logs for connection errors
+- Verify the Collector sidecar is running: `kubectl get pods -n <namespace>`
+
+### Data Not Reaching Jaeger
+
+If traces are not appearing in Jaeger:
+
+- Check Collector logs for export errors
+- Verify the Jaeger collector endpoint is correct and accessible
+- Test network connectivity from the Collector to Jaeger
+- Confirm Jaeger is configured to accept OTLP data on port 4317
+- Check for TLS configuration mismatches
+
+### High Memory Usage
+
+If the sidecar Collector is consuming excessive memory:
+
+- Reduce the `memory_limiter.limit_percentage` value
+- Decrease batch processor size: `send_batch_size`
+- Increase batch timeout to reduce processing frequency
+- Consider using sampling to reduce data volume
+
+## Best Practices
+
+**Resource allocation:**
+- Start with conservative resource limits and adjust based on observed usage
+- Monitor Collector memory and CPU usage in production
+- Set appropriate `memory_limiter` thresholds to prevent OOM kills
+
+**Configuration management:**
+- Use separate Collector configurations for different environments (dev, staging, production)
+- Store sensitive configuration (credentials, endpoints) in Kubernetes Secrets
+- Version control your OpenTelemetryCollector CR definitions
+
+**Performance optimization:**
+- Enable batch processing to reduce network overhead
+- Configure appropriate batch sizes based on your traffic patterns
+- Use memory limiters to prevent resource exhaustion
+- Consider sampling strategies for high-volume applications
+
+**Monitoring:**
+- Monitor Collector health and performance metrics
+- Set up alerts for Collector failures or export errors
+- Regularly review Collector logs for warnings or errors
+- Track data loss metrics to ensure reliable telemetry collection

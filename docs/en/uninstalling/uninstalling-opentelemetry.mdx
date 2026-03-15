@@ -1,0 +1,153 @@
+---
+weight: 10
+---
+
+# Uninstalling Alauda Build of OpenTelemetry v2
+
+You can uninstall the Alauda Build of OpenTelemetry v2 Operator and its resources from your Alauda Container Platform. This can be done through the Alauda Container Platform web console or the command line interface (CLI). Additionally, you have the option to delete the OpenTelemetry custom resource definitions (CRDs).
+
+## Uninstalling via the web console
+
+Uninstalling the Alauda Build of OpenTelemetry v2 Operator from an Alauda Container Platform involves deleting the following components:
+
+  - `Instrumentation` resources
+  - `OpenTelemetryCollector` resources
+  - Alauda Build of OpenTelemetry v2 Operator
+
+You can also optionally remove the OpenTelemetry custom resource definitions (CRDs).
+
+The Alauda Build of OpenTelemetry v2 Operator can be uninstalled using the Alauda Container Platform web console.
+
+**Procedure**
+
+<Steps>
+
+### Delete the `Instrumentation` resources
+
+    1.  In the Alauda Container Platform web console, navigate to **Administrator**.
+    2.  Select **Marketplace** > **OperatorHub**.
+    3.  Search for the `Alauda Build of OpenTelemetry v2`.
+    4.  Locate the Alauda Build of OpenTelemetry v2, and click to select it.
+    5.  Click **All Instances** tab.
+    6.  From the **Filter by instance type** dropdown, select `Instrumentation`.
+    7.  Click the "**⋮**" button for each `Instrumentation` resource, then click **Delete** in the menu.
+    8.  When prompted, confirm the action by clicking **Delete**.
+
+### Delete the `OpenTelemetryCollector` resources
+
+    In the **Alauda Build of OpenTelemetry v2** view of **OperatorHub**:
+
+    1.  Click **All Instances** tab.
+    2.  From the **Filter by instance type** dropdown, select `OpenTelemetryCollector`.
+    3.  Click the "**⋮**" button for each `OpenTelemetryCollector` resource, then click **Delete** in the menu.
+    4.  When prompted, confirm the action by clicking **Delete**.
+
+### Uninstall the Alauda Build of OpenTelemetry v2 Operator
+
+    In the **Alauda Build of OpenTelemetry v2** view of **OperatorHub**:
+
+    1.  Click the **Uninstall** button in the top-right corner.
+    2.  In the confirmation prompt, read the uninstall notice: *Removing the operator will not remove any of its custom resource definitions or managed resources. If you have created a resource instance, you need to delete it manually.*
+    3.  Click **Uninstall**.
+
+</Steps>
+
+## Uninstalling via the CLI
+
+To uninstall the Alauda Build of OpenTelemetry v2 Operator from an Alauda Container Platform, you must delete the following:
+
+  - `Instrumentation` resources
+  - `OpenTelemetryCollector` resources
+  - Alauda Build of OpenTelemetry v2 Operator
+
+Optionally, you can also delete the OpenTelemetry custom resource definitions (CRDs).
+
+The Alauda Build of OpenTelemetry v2 Operator can be uninstalled using the Alauda Container Platform command line interface (CLI).
+
+**Procedure**
+
+<Steps>
+
+### Delete the `Instrumentation` resources
+
+1.  Get the `Instrumentation` resources by executing this command:
+
+    ```shell {name=uninstall-otel:get-instrumentation}
+    kubectl get instrumentation --all-namespaces
+    ```
+
+    TODO: may use other example.
+
+    **Example output**
+
+    ```shell {name=uninstall-otel:get-instrumentation-output}
+    NAMESPACE   NAME                AGE
+    default     my-instrumentation  1d
+    ```
+
+2.  Use the namespace and name from the previous command's output to replace `<namespace>` and `<name>`, and then run the following to remove each resource:
+
+    ```shell {name=uninstall-otel:delete-instrumentation}
+    kubectl delete instrumentation/<name> -n <namespace>
+    ```
+
+    **Example output**
+
+    ```shell {name=uninstall-otel:delete-instrumentation-output}
+    instrumentation.opentelemetry.io "my-instrumentation" deleted
+    ```
+
+### Delete the `OpenTelemetryCollector` resources
+
+1.  Get the `OpenTelemetryCollector` resources by executing this command:
+
+    ```shell {name=uninstall-otel:get-collector}
+    kubectl get opentelemetrycollector --all-namespaces
+    ```
+
+    **Example output**
+
+    ```shell {name=uninstall-otel:get-collector-output}
+    NAMESPACE                 NAME   MODE         VERSION   READY   AGE     IMAGE                                                           MANAGEMENT
+    opentelemetry-collector   otel   deployment   0.146.0   1/1     9m35s   build-harbor.alauda.cn/asm/opentelemetry-collector:0.147.0-r0   managed
+    ```
+
+2.  Use the namespace and name from the previous command's output to replace `<namespace>` and `<name>`, and then run the following to remove each resource:
+
+    ```shell {name=uninstall-otel:delete-collector}
+    kubectl delete opentelemetrycollector/<name> -n <namespace>
+    ```
+
+    **Example output**
+
+    ```shell {name=uninstall-otel:delete-collector-output}
+    opentelemetrycollector.opentelemetry.io "otel" deleted
+    ```
+
+### Uninstall the Alauda Build of OpenTelemetry v2 Operator
+
+1.  Delete the `opentelemetry-operator2` subscription:
+
+    ```shell {name=uninstall-otel:delete-subscription}
+    kubectl delete subscription opentelemetry-operator2 -n opentelemetry-operator2
+    ```
+
+    **Example output**
+
+    ```shell {name=uninstall-otel:delete-subscription-output}
+    subscription.operators.coreos.com "opentelemetry-operator2" deleted
+    ```
+
+</Steps>
+
+## Deleting OpenTelemetry custom resource definitions
+
+The deletion of OpenTelemetry custom resource definitions (CRDs) is an optional step.
+
+**Procedure**
+
+1.  To delete the OpenTelemetry CRDs, execute the command below:
+
+    ```shell {name=uninstall-otel:delete-crds}
+    kubectl get crds -oname | grep opentelemetry.io | xargs kubectl delete
+    ```

@@ -1,0 +1,132 @@
+---
+weight: 20
+---
+
+# Instrumentation Options
+
+The `Instrumentation` custom resource provides various configuration options to control how auto-instrumentation is applied to your applications. These options allow you to customize the instrumentation behavior, specify resource requirements, and configure language-specific settings.
+
+## Basic Instrumentation Configuration
+
+An `Instrumentation` custom resource defines the instrumentation settings that will be applied to annotated pods. The basic structure includes:
+
+```yaml
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: my-instrumentation
+  namespace: application-namespace
+spec:
+  exporter:
+    endpoint: http://otel-collector:4318
+  propagators:
+    - tracecontext
+    - baggage
+  sampler:
+    type: parentbased_traceidratio
+    argument: "0.25"
+```
+
+## Annotation-based Injection
+
+To enable auto-instrumentation for your application, add the appropriate annotation to your pod or namespace:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp
+  annotations:
+    instrumentation.opentelemetry.io/inject-java: "true"
+spec:
+  containers:
+  - name: app
+    image: myapp:latest
+```
+
+The annotation format is `instrumentation.opentelemetry.io/inject-<language>`, where `<language>` can be:
+
+- `apache-httpd` - For Apache HTTP Server
+- `dotnet` - For .NET applications
+- `go` - For Go applications
+- `java` - For Java applications
+- `nodejs` - For Node.js applications
+- `python` - For Python applications
+
+## Namespace-level Instrumentation
+
+You can apply instrumentation to all pods in a namespace by annotating the namespace itself:
+
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: production
+  annotations:
+    instrumentation.opentelemetry.io/inject-java: "true"
+```
+
+:::tip
+Namespace-level annotations provide a convenient way to enable instrumentation for all applications in an environment without modifying individual pod specifications.
+:::
+
+## Resource Configuration
+
+You can specify resource requests and limits for the instrumentation init container:
+
+```yaml
+spec:
+  resource:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 100m
+      memory: 64Mi
+```
+
+## Environment Variable Injection
+
+The Instrumentation CR allows you to inject additional environment variables into instrumented containers:
+
+```yaml
+spec:
+  env:
+    - name: OTEL_TRACES_EXPORTER
+      value: otlp
+    - name: OTEL_METRICS_EXPORTER
+      value: otlp
+    - name: OTEL_LOGS_EXPORTER
+      value: otlp
+```
+
+These environment variables are automatically added to the application container when instrumentation is injected.
+
+## Selective Instrumentation
+
+You can control which containers in a multi-container pod receive instrumentation by using container-specific annotations:
+
+```yaml
+metadata:
+  annotations:
+    instrumentation.opentelemetry.io/inject-java: "true"
+    instrumentation.opentelemetry.io/container-names: "app,sidecar"
+```
+
+This annotation ensures that only the specified containers are instrumented, leaving other containers unmodified.
+
+:::note
+If the `container-names` annotation is not specified, instrumentation is applied to the first container in the pod by default.
+:::
+
+## Instrumentation Reference
+
+To reference a specific Instrumentation CR, you can use the full reference format in the annotation:
+
+```yaml
+metadata:
+  annotations:
+    instrumentation.opentelemetry.io/inject-java: "namespace/instrumentation-name"
+```
+
+This allows you to use different instrumentation configurations for different applications within the same namespace.

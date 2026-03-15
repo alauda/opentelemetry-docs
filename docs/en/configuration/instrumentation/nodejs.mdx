@@ -1,0 +1,42 @@
+---
+weight: 90
+---
+
+# Node.js Auto-instrumentation
+
+The Node.js auto-instrumentation provides automatic telemetry collection for Node.js applications, including popular frameworks like Express, Fastify, and Nest.js. This instrumentation captures traces, metrics, and logs from Node.js applications without requiring code modifications.
+
+The Operator injects the OpenTelemetry Node.js automatic instrumentation into Node.js application containers, configuring it to instrument common libraries and frameworks automatically. This enables comprehensive observability for Node.js workloads running in Kubernetes.
+
+## Enabling Node.js Instrumentation
+
+To enable auto-instrumentation for Node.js applications, annotate your pod or namespace:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nodejs-app
+  annotations:
+    instrumentation.opentelemetry.io/inject-nodejs: "true"
+spec:
+  containers:
+  - name: app
+    image: mynodeapp:latest
+```
+
+The Operator will automatically inject the instrumentation components and configure the Node.js runtime to load them at startup.
+
+## Configuration Reference
+
+For detailed configuration options, supported libraries, and advanced usage scenarios, refer to the official OpenTelemetry Operator documentation:
+
+**[Node.js Auto-instrumentation Documentation](https://github.com/open-telemetry/opentelemetry-operator?tab=readme-ov-file#using-nodejs-autoinstrumentation)**
+
+The official documentation provides comprehensive information about:
+
+- Supported Node.js versions
+- Configuration parameters and environment variables
+- Instrumented libraries and frameworks
+- Performance considerations
+- Troubleshooting guidance

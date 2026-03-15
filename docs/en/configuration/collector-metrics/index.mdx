@@ -1,0 +1,52 @@
+---
+weight: 60
+---
+
+# Configuring the Collector Metrics
+
+The OpenTelemetry Collector exposes internal metrics that provide valuable insights into its performance and operational health. These metrics enable you to monitor the Collector's behavior and troubleshoot potential issues effectively.
+
+## Overview
+
+The Collector provides metrics across several key areas:
+
+- Collector memory usage
+- CPU utilization
+- Number of active traces and spans processed
+- Dropped spans, logs, or metrics
+- Exporter and receiver statistics
+
+The Alauda build of OpenTelemetry Operator automatically creates a service named `<instance_name>-collector-monitoring` that exposes the Collector's internal metrics. This service listens on port `8888` by default.
+
+You can use these metrics for monitoring the Collector's performance, resource consumption, and other internal behaviors. You can also use a Prometheus instance or another monitoring tool to scrape these metrics from the `<instance_name>-collector-monitoring` service.
+
+:::note
+When the `spec.observability.metrics.enableMetrics` field in the `OpenTelemetryCollector` custom resource (CR) is set to `true`, the `OpenTelemetryCollector` CR automatically creates a Prometheus `ServiceMonitor` or `PodMonitor` CR to enable Prometheus to scrape your metrics.
+:::
+
+## Enabling Collector Metrics
+
+**Procedure**
+
+To enable metrics of an OpenTelemetry Collector instance, set the `spec.observability.metrics.enableMetrics` field to `true`:
+
+```yaml
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: <name>
+spec:
+  observability:
+    metrics:
+      enableMetrics: true
+```
+
+**Verification**
+
+You can use the Prometheus web console to verify successful configuration:
+
+1. Access the Prometheus web console in your Alauda Container Platform cluster.
+
+2. Navigate to **Status** → **Targets**.
+
+3. Check that the `ServiceMonitors` or `PodMonitors` in the `opentelemetry-collector-<instance_name>` format have the **Up** status.

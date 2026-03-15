@@ -1,0 +1,578 @@
+---
+weight: 20
+---
+
+# Sending Telemetry Data Without Sidecar Injection
+
+In the standalone deployment mode, the OpenTelemetry Collector runs as an independent service separate from your application pods. Applications send telemetry data directly to the Collector service endpoint over the network. This centralized approach is well-suited for large-scale deployments where resource efficiency and centralized management are priorities.
+
+## Deployment Architecture
+
+In this architecture:
+
+1. The Collector is deployed as a standalone service (Deployment, StatefulSet, or DaemonSet)
+2. A Kubernetes Service exposes the Collector endpoints to applications
+3. Applications are configured with the Collector service endpoint
+4. The Collector receives data from multiple applications and forwards it to backend systems
+
+This approach enables resource sharing across applications and simplifies Collector configuration management.
+
+## Prerequisites
+
+Before deploying a standalone Collector, ensure you have:
+
+- **Alauda Build of OpenTelemetry Operator** installed in your cluster
+- **Alauda Build of Jaeger v2** deployed and accessible for receiving trace data
+- **Cluster permissions** - Cluster admin role or sufficient RBAC permissions to create ServiceAccounts, ClusterRoles, and ClusterRoleBindings
+- **Target namespace** - A namespace for deploying the Collector (commonly `observability` or `monitoring`)
+
+## Configuration Steps
+
+### Step 1: Create ServiceAccount
+
+Create a ServiceAccount for the Collector deployment:
+
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: otel-collector-deployment
+  namespace: observability
+```
+
+### Step 2: Configure RBAC Permissions
+
+Grant the ServiceAccount permissions required by Collector processors:
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: otel-collector
+rules:
+- apiGroups: ["", "config.openshift.io"]
+  resources: ["pods", "namespaces", "infrastructures", "infrastructures/status"]
+  verbs: ["get", "watch", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: otel-collector
+subjects:
+- kind: ServiceAccount
+  name: otel-collector-deployment
+  namespace: observability
+roleRef:
+  kind: ClusterRole
+  name: otel-collector
+  apiGroup: rbac.authorization.k8s.io
+```
+
+### Step 3: Deploy the Standalone Collector
+
+Create an OpenTelemetryCollector custom resource configured for deployment mode:
+
+```yaml
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel-collector
+  namespace: observability
+spec:
+  mode: deployment
+  replicas: 3
+  serviceAccount: otel-collector-deployment
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+    processors:
+      batch:
+        timeout: 10s
+        send_batch_size: 1024
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 75
+        spike_limit_percentage: 25
+      k8sattributes:
+        extract:
+          metadata:
+            - k8s.namespace.name
+            - k8s.deployment.name
+            - k8s.pod.name
+            - k8s.node.name
+      resourcedetection:
+        detectors: [env, system]
+        timeout: 2s
+    exporters:
+      otlp:
+        endpoint: jaeger-production-collector:4317
+        tls:
+          insecure: true
+      logging:
+        loglevel: info
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, k8sattributes, resourcedetection, batch]
+          exporters: [otlp, logging]
+```
+
+**Configuration breakdown:**
+
+- `mode: deployment` - Deploys Collector as a Kubernetes Deployment
+- `replicas: 3` - Runs three Collector instances for high availability
+- `processors.k8sattributes` - Enriches telemetry with Kubernetes metadata
+- `exporters.logging` - Logs telemetry data for debugging (remove in production)
+- `endpoint: jaeger-production-collector:4317` - Replace `production` with your Jaeger instance name
+
+:::warning
+Replace `jaeger-production-collector` with the actual service name of your Jaeger collector. The format is typically `jaeger-<instance-name>-collector`.
+:::
+
+### Step 4: Verify Service Creation
+
+The Operator automatically creates a Kubernetes Service for the Collector. Verify it was created:
+
+```bash
+kubectl get svc -n observability
+```
+
+You should see a service named `otel-collector-collector` with the following ports:
+- **4317** - OTLP gRPC receiver
+- **4318** - OTLP HTTP receiver
+- **8888** - Prometheus metrics endpoint (Collector's own metrics)
+- **13133** - Health check endpoint
+
+### Step 5: Configure Application to Send Data
+
+Configure your applications to send telemetry data to the Collector service endpoint.
+
+**Using environment variables:**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+  namespace: production
+spec:
+  template:
+    spec:
+      containers:
+      - name: app
+        image: myapp:latest
+        env:
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://otel-collector-collector.observability.svc.cluster.local:4318"
+        - name: OTEL_EXPORTER_OTLP_PROTOCOL
+          value: "http/protobuf"
+        - name: OTEL_SERVICE_NAME
+          value: "my-application"
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: "deployment.environment=production,service.version=1.0.0"
+```
+
+**Service endpoint format:**
+```
+<service-name>.<namespace>.svc.cluster.local:<port>
+```
+
+For example:
+- `otel-collector-collector.observability.svc.cluster.local:4318` (HTTP)
+- `otel-collector-collector.observability.svc.cluster.local:4317` (gRPC)
+
+:::tip
+You can use the short form `otel-collector-collector.observability.svc:4318` or even `otel-collector-collector.observability:4318` within the same cluster. The fully qualified domain name is more explicit but not required.
+:::
+
+## High Availability Configuration
+
+### Multiple Replicas
+
+Deploy multiple Collector replicas for high availability and load distribution:
+
+```yaml
+spec:
+  mode: deployment
+  replicas: 3
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+```
+
+The Kubernetes Service automatically load balances traffic across all healthy replicas.
+
+### DaemonSet Mode
+
+For node-level telemetry collection, use DaemonSet mode to run a Collector instance on every node:
+
+```yaml
+spec:
+  mode: daemonset
+  config:
+    receivers:
+      hostmetrics:
+        collection_interval: 30s
+        scrapers:
+          cpu:
+          memory: {}
+          disk: {}
+          network: {}
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+```
+
+DaemonSet mode is ideal for:
+- Collecting host metrics from every node
+- Log collection from node filesystems
+- Scenarios requiring node-local processing
+
+## Network Configuration
+
+### Service Type
+
+The Operator creates a ClusterIP service by default, which is suitable for in-cluster communication. The service configuration looks like:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector-collector
+  namespace: observability
+spec:
+  type: ClusterIP
+  ports:
+  - name: otlp-grpc
+    port: 4317
+    protocol: TCP
+    targetPort: 4317
+  - name: otlp-http
+    port: 4318
+    protocol: TCP
+    targetPort: 4318
+  - name: prometheus
+    port: 8888
+    protocol: TCP
+    targetPort: 8888
+  selector:
+    app.kubernetes.io/component: opentelemetry-collector
+```
+
+### Port Reference
+
+| Port | Protocol | Purpose |
+|------|----------|---------|
+| 4317 | gRPC | OTLP gRPC receiver - accepts traces, metrics, and logs |
+| 4318 | HTTP | OTLP HTTP receiver - accepts traces, metrics, and logs |
+| 8888 | HTTP | Prometheus metrics - exposes Collector's own metrics |
+| 13133 | HTTP | Health check - liveness and readiness probes |
+
+## Verification
+
+### Check Collector Status
+
+Verify the Collector pods are running:
+
+```bash
+kubectl get pods -n observability -l app.kubernetes.io/component=opentelemetry-collector
+```
+
+Expected output:
+```
+NAME                              READY   STATUS    RESTARTS   AGE
+otel-collector-collector-0        1/1     Running   0          5m
+otel-collector-collector-1        1/1     Running   0          5m
+otel-collector-collector-2        1/1     Running   0          5m
+```
+
+### View Collector Logs
+
+Check the Collector logs to verify it's receiving and exporting data:
+
+```bash
+kubectl logs -n observability deployment/otel-collector-collector --tail=50
+```
+
+Look for:
+- Receiver startup messages indicating ports are listening
+- Incoming data processing logs
+- Successful export confirmations to Jaeger
+
+### Test Connectivity
+
+Test connectivity to the Collector from within the cluster:
+
+```bash
+kubectl run test-pod --rm -it --image=curlimages/curl --restart=Never -- \
+  curl -X POST http://otel-collector-collector.observability.svc:4318/v1/traces \
+  -H "Content-Type: application/json" \
+  -d '{"resourceSpans":[]}'
+```
+
+A successful response indicates the Collector is accessible and accepting requests.
+
+### Verify Data in Jaeger
+
+Access the Jaeger UI to confirm traces are being received:
+
+1. Port-forward to the Jaeger query service
+2. Search for traces from your applications
+3. Verify trace data includes expected spans and Kubernetes attributes
+
+## Performance Optimization
+
+### Batch Processor Configuration
+
+Optimize batch processing for your traffic patterns:
+
+```yaml
+processors:
+  batch:
+    timeout: 10s              # Maximum time to wait before sending a batch
+    send_batch_size: 1024     # Number of spans/metrics per batch
+    send_batch_max_size: 2048 # Maximum batch size (hard limit)
+```
+
+**Tuning guidelines:**
+- **High-volume applications**: Increase `send_batch_size` to reduce network overhead
+- **Low-latency requirements**: Decrease `timeout` to reduce data delay
+- **Memory constraints**: Decrease `send_batch_max_size` to limit memory usage
+
+### Memory Limiter Configuration
+
+Prevent memory exhaustion with appropriate limits:
+
+```yaml
+processors:
+  memory_limiter:
+    check_interval: 1s        # How often to check memory usage
+    limit_percentage: 75      # Soft limit (start refusing data)
+    spike_limit_percentage: 25 # Spike allowance above limit
+```
+
+**Calculation:**
+- If Collector has 2Gi memory limit
+- Soft limit: 2Gi × 75% = 1.5Gi
+- Hard limit: 1.5Gi + (2Gi × 25%) = 2Gi
+
+### Resource Allocation
+
+Set appropriate resource requests and limits:
+
+```yaml
+spec:
+  resources:
+    requests:
+      cpu: 500m      # Guaranteed CPU
+      memory: 1Gi    # Guaranteed memory
+    limits:
+      cpu: 2000m     # Maximum CPU
+      memory: 4Gi    # Maximum memory
+```
+
+Start with conservative values and adjust based on observed metrics.
+
+## Troubleshooting
+
+### Collector Fails to Start
+
+If the Collector pods are not starting:
+
+:::warning
+**Common causes:**
+- **Configuration syntax errors** - Check the YAML configuration for syntax issues
+- **Invalid processor configuration** - Verify all processor settings are valid
+- **Resource constraints** - Ensure the namespace has sufficient resource quota
+- **RBAC permissions** - Verify the ServiceAccount has required permissions
+:::
+
+Check the pod events and logs:
+```bash
+kubectl describe pod -n observability <pod-name>
+kubectl logs -n observability <pod-name>
+```
+
+### Application Cannot Connect to Collector
+
+If applications cannot send data to the Collector:
+
+**Check DNS resolution:**
+```bash
+kubectl run test-dns --rm -it --image=busybox --restart=Never -- \
+  nslookup otel-collector-collector.observability.svc.cluster.local
+```
+
+**Check network policies:**
+```bash
+kubectl get networkpolicies -n observability
+kubectl get networkpolicies -n <application-namespace>
+```
+
+**Verify service endpoints:**
+```bash
+kubectl get endpoints -n observability otel-collector-collector
+```
+
+### Data Not Reaching Jaeger
+
+If traces are not appearing in Jaeger:
+
+1. **Check Collector export logs:**
+   ```bash
+   kubectl logs -n observability deployment/otel-collector-collector | grep -i export
+   ```
+
+2. **Verify Jaeger endpoint:**
+   ```bash
+   kubectl get svc -n <jaeger-namespace> | grep collector
+   ```
+
+3. **Test network connectivity:**
+   ```bash
+   kubectl run test-connection --rm -it --image=busybox --restart=Never -- \
+     telnet jaeger-production-collector.jaeger.svc 4317
+   ```
+
+4. **Check Jaeger collector logs:**
+   ```bash
+   kubectl logs -n <jaeger-namespace> deployment/jaeger-production-collector
+   ```
+
+### High Memory or CPU Usage
+
+If the Collector is consuming excessive resources:
+
+**Reduce data volume:**
+- Implement sampling at the application level
+- Use tail-based sampling in the Collector
+- Filter unnecessary telemetry data
+
+**Optimize processing:**
+- Increase batch sizes to reduce processing overhead
+- Remove unnecessary processors
+- Disable debug logging in production
+
+**Scale horizontally:**
+- Increase the number of Collector replicas
+- Use load balancing to distribute traffic
+
+## Monitoring the Collector
+
+### Collector Metrics
+
+The Collector exposes its own metrics on port 8888:
+
+```bash
+kubectl port-forward -n observability svc/otel-collector-collector 8888:8888
+curl http://localhost:8888/metrics
+```
+
+### Key Metrics to Monitor
+
+| Metric | Description | Action Threshold |
+|--------|-------------|------------------|
+| `otelcol_receiver_accepted_spans` | Spans received by the Collector | Monitor for drops |
+| `otelcol_receiver_refused_spans` | Spans refused (backpressure) | Should be 0 |
+| `otelcol_exporter_sent_spans` | Spans successfully exported | Should match received |
+| `otelcol_exporter_send_failed_spans` | Failed export attempts | Investigate if > 0 |
+| `otelcol_processor_batch_batch_send_size` | Batch sizes being sent | Optimize batch config |
+| `otelcol_process_runtime_total_alloc_bytes` | Memory allocation | Monitor for leaks |
+
+### Health Checks
+
+The Collector provides health check endpoints:
+
+```bash
+# Liveness probe
+curl http://localhost:13133/
+
+# Readiness probe
+curl http://localhost:13133/ready
+```
+
+Configure Kubernetes probes:
+
+```yaml
+spec:
+  template:
+    spec:
+      containers:
+      - name: otc-container
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 13133
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 13133
+          initialDelaySeconds: 10
+          periodSeconds: 5
+```
+
+## Environment Variables Reference
+
+When configuring applications to send data to the Collector, use these standard OpenTelemetry environment variables:
+
+| Environment Variable | Description | Default Value | Example |
+|---------------------|-------------|---------------|---------|
+| `OTEL_SERVICE_NAME` | Service name for telemetry | `""` | `"my-application"` |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Collector endpoint URL | `http://localhost:4317` | `"http://otel-collector-collector.observability.svc:4318"` |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | Transport protocol | `grpc` | `"http/protobuf"` or `"grpc"` |
+| `OTEL_EXPORTER_OTLP_TIMEOUT` | Export timeout | `10s` | `"30s"` |
+| `OTEL_EXPORTER_OTLP_INSECURE` | Disable TLS verification | `false` | `"true"` (for in-cluster) |
+| `OTEL_RESOURCE_ATTRIBUTES` | Additional resource attributes | `""` | `"environment=prod,version=1.0"` |
+
+## Best Practices
+
+**High availability:**
+- Deploy at least 3 Collector replicas for production workloads
+- Use pod anti-affinity to spread replicas across nodes
+- Configure appropriate resource requests and limits
+- Implement health checks and readiness probes
+
+**Resource management:**
+- Start with conservative resource allocations and scale based on metrics
+- Monitor Collector CPU and memory usage continuously
+- Set memory limiters to prevent OOM kills
+- Use horizontal pod autoscaling for dynamic workloads
+
+**Configuration management:**
+- Use separate Collector instances for different environments
+- Store sensitive configuration in Kubernetes Secrets
+- Version control your OpenTelemetryCollector CR definitions
+- Document custom processor configurations
+
+**Monitoring and observability:**
+- Export Collector metrics to your monitoring system
+- Set up alerts for export failures and high error rates
+- Monitor data loss and backpressure metrics
+- Regularly review Collector logs for warnings
+
+**Security:**
+- Use TLS for external connections
+- Implement network policies to restrict Collector access
+- Follow the principle of least privilege for RBAC permissions
+- Regularly update the Collector to the latest version
+
+**Performance:**
+- Enable batch processing to reduce network overhead
+- Configure appropriate batch sizes for your traffic patterns
+- Use sampling strategies for high-volume applications
+- Consider using multiple Collector tiers for complex processing

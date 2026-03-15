@@ -1,0 +1,214 @@
+---
+weight: 110
+---
+
+# Multi-container Pods
+
+When working with multi-container pods, you need to configure auto-instrumentation to handle multiple containers appropriately. The Operator provides flexible options for controlling which containers receive instrumentation and how multiple instrumentations interact.
+
+## Default Behavior
+
+By default, when you annotate a pod for auto-instrumentation, the Operator injects instrumentation into the first container in the pod specification. This works well for single-container pods but may not be suitable for multi-container scenarios.
+
+## Specifying Target Containers
+
+To control which containers receive instrumentation, use the `container-names` annotation:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: multi-container-app
+  annotations:
+    instrumentation.opentelemetry.io/inject-java: "true"
+    instrumentation.opentelemetry.io/container-names: "app,worker"
+spec:
+  containers:
+  - name: app
+    image: myapp:latest
+  - name: worker
+    image: myworker:latest
+  - name: sidecar
+    image: mysidecar:latest
+```
+
+In this example, only the `app` and `worker` containers receive Java instrumentation, while the `sidecar` container remains uninstrumented.
+
+## Multiple Instrumentations in One Pod
+
+You can apply different instrumentation types to different containers within the same pod:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: polyglot-app
+  annotations:
+    instrumentation.opentelemetry.io/inject-java: "true"
+    instrumentation.opentelemetry.io/inject-python: "true"
+    instrumentation.opentelemetry.io/java-container-names: "java-app"
+    instrumentation.opentelemetry.io/python-container-names: "python-worker"
+spec:
+  containers:
+  - name: java-app
+    image: myjavaapp:latest
+  - name: python-worker
+    image: mypythonworker:latest
+  - name: nginx
+    image: nginx:latest
+```
+
+This configuration applies:
+- Java instrumentation to the `java-app` container
+- Python instrumentation to the `python-worker` container
+- No instrumentation to the `nginx` container
+
+## Container Name Annotation Format
+
+The container name annotation follows this pattern:
+
+```
+instrumentation.opentelemetry.io/<language>-container-names: "container1,container2"
+```
+
+Where `<language>` can be:
+- `java`
+- `python`
+- `nodejs`
+- `dotnet`
+- `go`
+- `apache-httpd`
+
+## Shared Volume Considerations
+
+The Operator creates shared volumes to inject instrumentation libraries. In multi-container pods, these volumes are mounted into each instrumented container:
+
+```yaml
+volumes:
+- name: opentelemetry-auto-instrumentation-java
+  emptyDir: {}
+- name: opentelemetry-auto-instrumentation-python
+  emptyDir: {}
+```
+
+Each instrumentation type uses a separate volume to avoid conflicts.
+
+## Resource Allocation
+
+When multiple containers are instrumented, each receives its own init container for instrumentation injection. Consider the cumulative resource requirements:
+
+```yaml
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: multi-container-instrumentation
+spec:
+  java:
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+  python:
+    resources:
+      limits:
+        cpu: 200m
+        memory: 256Mi
+      requests:
+        cpu: 50m
+        memory: 64Mi
+```
+
+## Environment Variable Isolation
+
+Each instrumented container receives its own set of instrumentation environment variables. You can configure container-specific settings using the Instrumentation CR:
+
+```yaml
+spec:
+  java:
+    env:
+      - name: OTEL_SERVICE_NAME
+        value: java-service
+  python:
+    env:
+      - name: OTEL_SERVICE_NAME
+        value: python-service
+```
+
+## Example: Multi-language Application
+
+Complete example of a pod with multiple instrumented containers:
+
+```yaml
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: polyglot-instrumentation
+  namespace: production
+spec:
+  exporter:
+    endpoint: http://otel-collector:4318
+  java:
+    image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:latest
+    env:
+      - name: OTEL_SERVICE_NAME
+        value: api-service
+  python:
+    image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-python:latest
+    env:
+      - name: OTEL_SERVICE_NAME
+        value: worker-service
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: polyglot-app
+  namespace: production
+  annotations:
+    instrumentation.opentelemetry.io/inject-java: "production/polyglot-instrumentation"
+    instrumentation.opentelemetry.io/inject-python: "production/polyglot-instrumentation"
+    instrumentation.opentelemetry.io/java-container-names: "api"
+    instrumentation.opentelemetry.io/python-container-names: "worker"
+spec:
+  containers:
+  - name: api
+    image: myapi:latest
+    ports:
+    - containerPort: 8080
+  - name: worker
+    image: myworker:latest
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+```
+
+:::tip
+When using multiple instrumentations in a single pod, ensure that each instrumented container has a unique service name to distinguish telemetry data in your observability backend.
+:::
+
+## Troubleshooting Multi-container Instrumentation
+
+### Verifying Container Selection
+
+Check which containers were instrumented:
+
+```bash
+kubectl describe pod <pod-name>
+```
+
+Look for the init containers and volume mounts in each container.
+
+### Common Issues
+
+**Wrong container instrumented**: Verify the `container-names` annotation specifies the correct container names.
+
+**Missing instrumentation**: Ensure the annotation format is correct and the Instrumentation CR exists in the correct namespace.
+
+**Resource constraints**: Check that the pod has sufficient resources for multiple init containers and instrumentation libraries.
+
+:::note
+The order of containers in the pod specification does not affect which containers are instrumented. Only the `container-names` annotation determines the target containers.
+:::

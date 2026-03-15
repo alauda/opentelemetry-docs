@@ -1,0 +1,91 @@
+---
+weight: 60
+---
+
+# Processors
+
+Processors operate on telemetry data after it is received and before it is exported. They are optional and disabled by default. Each processor must be explicitly enabled per data source, and not every processor supports every signal type. Multiple processors can be chained for a given data source, and the order in which they execute is significant.
+
+## Batch Processor
+
+The Batch Processor groups traces and metrics into batches, reducing the number of outbound connections required to transmit telemetry data.
+
+**Reference**: [Batch Processor Documentation](https://github.com/open-telemetry/opentelemetry-collector/blob/main/processor/batchprocessor/README.md)
+
+## Memory Limiter Processor
+
+The Memory Limiter Processor monitors the Collector's memory consumption at regular intervals and halts data processing once the soft memory threshold is reached. It works with traces, metrics, and logs. When processing pauses, the upstream component — usually a receiver — is expected to retry and may apply backpressure on incoming data. If memory consumption hits the hard limit, this processor triggers a forced garbage collection cycle.
+
+**Reference**: [Memory Limiter Processor Documentation](https://github.com/open-telemetry/opentelemetry-collector/blob/main/processor/memorylimiterprocessor/README.md)
+
+## Resource Detection Processor
+
+The Resource Detection Processor discovers host resource information according to OpenTelemetry's resource semantic conventions. Based on the detected details, it can enrich or override resource attribute values in telemetry data. This processor works with traces and metrics.
+
+**Reference**: [Resource Detection Processor Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/resourcedetectionprocessor/README.md)
+
+## Attributes Processor
+
+The Attributes Processor modifies attributes on spans, logs, or metrics. It supports filtering and matching of incoming data, allowing you to selectively include or exclude specific data for targeted actions.
+
+**Reference**: [Attributes Processor Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/attributesprocessor/README.md)
+
+## Resource Processor
+
+The Resource Processor updates resource-level attributes across traces, metrics, and logs.
+
+**Reference**: [Resource Processor Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/resourceprocessor/README.md)
+
+## Span Processor
+
+The Span Processor can rename spans based on their attributes or derive attributes from span names. It also supports modifying span status and selectively including or excluding spans. This processor operates on traces.
+
+**Reference**: [Span Processor Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/spanprocessor/README.md)
+
+## Kubernetes Attributes Processor
+
+The Kubernetes Attributes Processor automatically enriches spans, metrics, and log resource attributes with Kubernetes metadata. It detects associated Kubernetes resources, extracts their metadata, and attaches it as resource attributes to the corresponding telemetry data. This processor works with traces, metrics, and logs.
+
+**Reference**: [Kubernetes Attributes Processor Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/k8sattributesprocessor/README.md)
+
+## Filter Processor
+
+The Filter Processor uses the OpenTelemetry Transformation Language to define drop conditions for telemetry data. When any condition evaluates to true, the matching data is discarded. Conditions can be combined with the logical OR operator. This processor works with traces, metrics, and logs.
+
+**Reference**: [Filter Processor Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/filterprocessor/README.md)
+
+## Cumulative-to-Delta Processor
+
+The Cumulative-to-Delta Processor transforms monotonic cumulative-sum and histogram metrics into their monotonic delta equivalents.
+
+**Reference**: [Cumulative-to-Delta Processor Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/cumulativetodeltaprocessor/README.md)
+
+## Group-by-Attributes Processor
+
+The Group-by-Attributes Processor reorganizes spans, log records, and metric data points by reassigning entries with identical attributes to a matching Resource.
+
+**Reference**: [Group-by-Attributes Processor Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/groupbyattrsprocessor/README.md)
+
+## Transform Processor
+
+The Transform Processor applies rule-based modifications to telemetry data using the OpenTelemetry Transformation Language (OTTL). For each signal type, it evaluates a set of conditions and statements tied to a particular OTTL Context, executing them sequentially against the incoming data as defined in the configuration.
+
+**Reference**: [Transform Processor Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/transformprocessor/README.md)
+
+## Tail Sampling Processor
+
+The Tail Sampling Processor evaluates complete traces against user-defined policies once all spans have arrived. This tail-based approach lets you selectively retain traces of interest while lowering ingestion and storage costs.
+
+**Reference**: [Tail Sampling Processor Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/tailsamplingprocessor/README.md)
+
+## Probabilistic Sampling Processor
+
+The Probabilistic Sampling Processor offers a lighter-weight alternative to the Tail Sampling Processor for high-volume scenarios. It reduces costs by retaining only a configurable fraction of the overall data throughput.
+
+**Reference**: [Probabilistic Sampling Processor Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/probabilisticsamplerprocessor/README.md)
+
+## Metric Start Time Processor
+
+The Metric Start Time Processor assigns start timestamps to metric points with cumulative aggregation temporality. This is particularly useful for adding start times to cumulative metrics produced by the Prometheus Receiver, which emits metric points without them.
+
+**Reference**: [Metric Start Time Processor Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/metricstarttimeprocessor/README.md)

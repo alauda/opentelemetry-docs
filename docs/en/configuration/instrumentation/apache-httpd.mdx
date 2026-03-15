@@ -1,0 +1,42 @@
+---
+weight: 50
+---
+
+# Apache HTTP Server Auto-instrumentation
+
+The Apache HTTP Server auto-instrumentation enables automatic collection of telemetry data from Apache web servers without requiring manual code modifications. This instrumentation captures HTTP request and response information, including request paths, status codes, and timing data.
+
+The Operator injects the OpenTelemetry Apache module into Apache HTTP Server containers, automatically configuring the module to export telemetry data to the specified backend. This provides visibility into web server performance and request patterns.
+
+## Enabling Apache HTTP Server Instrumentation
+
+To enable auto-instrumentation for Apache HTTP Server, annotate your pod or namespace:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: apache-server
+  annotations:
+    instrumentation.opentelemetry.io/inject-apache-httpd: "true"
+spec:
+  containers:
+  - name: httpd
+    image: httpd:latest
+```
+
+The Operator will automatically inject the necessary instrumentation components when the pod is created.
+
+## Configuration Reference
+
+For detailed configuration options, parameters, and advanced usage scenarios, refer to the official OpenTelemetry Operator documentation:
+
+**[Apache HTTP Server Auto-instrumentation Documentation](https://github.com/open-telemetry/opentelemetry-operator?tab=readme-ov-file#using-apache-httpd-autoinstrumentation)**
+
+The official documentation provides comprehensive information about:
+
+- Supported Apache versions
+- Configuration parameters
+- Environment variables
+- Module-specific settings
+- Troubleshooting guidance

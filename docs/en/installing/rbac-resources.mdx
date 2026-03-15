@@ -1,0 +1,78 @@
+---
+weight: 30
+---
+
+# Creating the Required RBAC Resources Automatically
+
+The Alauda Build of OpenTelemetry v2 Operator automatically creates the necessary cluster-level RBAC resources when certain Collector components require access to Kubernetes resources across the cluster. For some components, such as the `k8sattributes` processor or the `k8sobjects` receiver, additional RBAC permissions are needed beyond the default Operator scope.
+
+## Automatic RBAC creation
+
+The Operator can automatically create the required `ClusterRole` and `ClusterRoleBinding` resources when the OpenTelemetry Collector configuration includes components that require cluster-wide access.
+
+:::note
+To enable the automatic RBAC creation capability, you must complete the steps in the [Procedure](#procedure) section below to grant the Operator the necessary permissions for managing cluster-level RBAC resources.
+:::
+
+The following are examples of components that typically require additional RBAC permissions:
+
+* **k8sattributes processor**: Requires permissions to query Pod, Namespace, Node, ReplicaSet, and Deployment resources for enriching telemetry data with Kubernetes metadata.
+* **k8sobjects receiver**: Requires permissions to watch and list Kubernetes resources such as Events, Pods, and Nodes.
+* **kubeletstats receiver**: Requires permissions to access kubelet endpoints for node and pod metrics.
+* **resourcedetection processor**: Requires permissions to access Node resources for resource detection.
+
+### Procedure \{#procedure}
+
+1. Create the `ClusterRole`:
+
+    ```bash {name=rbac:create-clusterrole}
+    kubectl apply -f - <<EOF
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: generate-processors-rbac
+    rules:
+    - apiGroups:
+      - rbac.authorization.k8s.io
+      resources:
+      - clusterrolebindings
+      - clusterroles
+      verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+    EOF
+    ```
+
+2. Create the `ClusterRoleBinding`:
+
+    ```bash {name=rbac:create-clusterrolebinding}
+    kubectl apply -f - <<EOF
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: generate-processors-rbac
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: generate-processors-rbac
+    subjects:
+    - kind: ServiceAccount
+      name: opentelemetry-operator-controller-manager
+      namespace: opentelemetry-operator2
+    EOF
+    ```
+
+3. _(Optional)_ Restart the Alauda Build of OpenTelemetry v2 Operator to pick up the new RBAC permissions:
+
+    :::tip
+    This step is only required if the Operator was already running before you created the `ClusterRole` and `ClusterRoleBinding`. If you created them **before** installing the Operator, you can skip this step.
+    :::
+
+    ```bash {name=rbac:restart-operator}
+    kubectl rollout restart deployment/opentelemetry-operator-controller-manager -n opentelemetry-operator2
+    ```

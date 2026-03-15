@@ -1,0 +1,57 @@
+---
+weight: 10
+---
+
+# Auto-instrumentation
+
+Auto-instrumentation is a feature of the Alauda build of OpenTelemetry Operator that automatically injects OpenTelemetry instrumentation libraries into application containers. This approach eliminates the need to manually instrument your code, significantly reducing the effort required to implement observability.
+
+## How Auto-instrumentation Works
+
+The Operator uses Kubernetes admission webhooks to intercept pod creation requests. When a pod is annotated for auto-instrumentation, the Operator automatically:
+
+1. Injects an init container that copies the instrumentation library into a shared volume
+2. Modifies the application container to load the instrumentation library at startup
+3. Configures environment variables to control instrumentation behavior
+4. Sets up telemetry data export to the configured backend
+
+This process happens transparently during pod deployment, requiring no changes to your application code or container images.
+
+## Supported Languages
+
+The Alauda build of OpenTelemetry Operator supports auto-instrumentation for the following programming languages and runtimes:
+
+- **Apache HTTP Server** - Automatic instrumentation for Apache web server
+- **.NET** - Support for .NET applications and services
+- **Go** - Instrumentation for Go applications
+- **Java** - Comprehensive support for Java applications with JVM instrumentation
+- **Node.js** - Automatic instrumentation for Node.js applications
+- **Python** - Support for Python applications
+
+Each language has specific configuration options and requirements, which are covered in the respective language-specific sections.
+
+## Enabling Auto-instrumentation
+
+To enable auto-instrumentation for your application, you need to:
+
+1. Create an `Instrumentation` custom resource that defines the instrumentation configuration
+2. Annotate your application pods or namespaces with the appropriate instrumentation annotation
+3. Deploy or restart your application to apply the instrumentation
+
+The Operator will automatically detect the annotation and inject the necessary instrumentation components during pod creation.
+
+:::note
+Auto-instrumentation requires that your application pods have sufficient permissions and resources to load the instrumentation libraries. Ensure your pod security policies and resource limits accommodate the additional overhead.
+:::
+
+## Benefits of Auto-instrumentation
+
+Auto-instrumentation provides several key advantages:
+
+- **Zero code changes** - No need to modify application source code
+- **Consistent instrumentation** - Standardized telemetry collection across all applications
+- **Simplified deployment** - Instrumentation is applied automatically through annotations
+- **Easy updates** - Update instrumentation libraries by modifying the Instrumentation CR
+- **Language flexibility** - Support for multiple programming languages and frameworks
+
+By leveraging auto-instrumentation, you can quickly achieve comprehensive observability across your application landscape without the complexity of manual instrumentation.
