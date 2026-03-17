@@ -4,27 +4,32 @@ weight: 40
 
 # Configuring Metrics for the Monitoring Stack
 
-As a cluster administrator, you can configure the OpenTelemetry Collector to integrate with the Alauda Container Platform monitoring stack. This integration enables you to:
+The OpenTelemetry Collector can be integrated with the platform monitoring stack to expose its own operational metrics via Prometheus. As a cluster administrator, you can set up this integration to achieve the following:
 
-- Create Prometheus `ServiceMonitor` custom resources for scraping the Collector's pipeline metrics and enabled Prometheus exporters
-- Configure the Prometheus receiver to scrape metrics from the in-cluster monitoring stack
+- Automatically generate Prometheus `ServiceMonitor` resources that scrape both the Collector's internal pipeline metrics and any configured Prometheus exporter endpoints.
+- Use the Prometheus receiver within the Collector to pull metrics from the cluster's built-in monitoring infrastructure.
 
 ## Sending Metrics to the Monitoring Stack
 
-You can configure the `OpenTelemetryCollector` custom resource (CR) to create a Prometheus `ServiceMonitor` CR or a `PodMonitor` CR for a sidecar deployment. A `ServiceMonitor` can scrape the Collector's internal metrics endpoint and Prometheus exporter metrics endpoints.
+The `OpenTelemetryCollector` custom resource (CR) supports automatic creation of Prometheus `ServiceMonitor` or `PodMonitor` resources. These resources instruct the monitoring stack to collect metrics from the Collector's internal telemetry endpoint as well as from any Prometheus exporter endpoints defined in the pipeline.
 
-### ServiceMonitor Configuration
+### Enabling Automatic ServiceMonitor Creation
 
-The following example shows an OpenTelemetry Collector CR configured with the Prometheus exporter:
+When you enable the `enableMetrics` option in the Collector CR, the Alauda build of OpenTelemetry v2 Operator automatically provisions the necessary `ServiceMonitor` or `PodMonitor` resources for metric collection.
+
+The following example shows a Collector CR configured with a Prometheus exporter and automatic metrics collection enabled:
 
 ```yaml
 apiVersion: opentelemetry.io/v1beta1
 kind: OpenTelemetryCollector
+metadata:
+  labels:
+    prometheus: kube-prometheus # [!code callout]
 spec:
   mode: deployment
   observability:
     metrics:
-      enableMetrics: true # 1
+      enableMetrics: true # [!code callout]
   config:
     exporters:
       prometheus:
@@ -45,20 +50,23 @@ spec:
           exporters: [prometheus]
 ```
 
-**Callout 1**: Configures the Alauda build of OpenTelemetry Operator to create the Prometheus `ServiceMonitor` CR or `PodMonitor` CR to scrape the Collector's internal metrics endpoint and the Prometheus exporter metrics endpoints.
+<Callouts>
+  1. `prometheus=kube-prometheus` is required in ACP prometheus.
+  2. Enables the Operator to automatically create `ServiceMonitor` or `PodMonitor` resources that target the Collector's metrics endpoints, including both internal telemetry and Prometheus exporter ports.
+</Callouts>
 
 :::note
-Setting `enableMetrics` to `true` creates the following two `ServiceMonitor` instances:
+Turning on `enableMetrics` results in two separate `ServiceMonitor` resources being created:
 
-- One `ServiceMonitor` instance for the `<instance_name>-collector-monitoring` service. This `ServiceMonitor` instance scrapes the Collector's internal metrics.
-- One `ServiceMonitor` instance for the `<instance_name>-collector` service. This `ServiceMonitor` instance scrapes the metrics exposed by the Prometheus exporter instances.
+- A `ServiceMonitor` targeting the `<instance_name>-collector-monitoring` service, which collects the Collector's own internal operational metrics.
+- A `ServiceMonitor` targeting the `<instance_name>-collector` service, which collects metrics published by any Prometheus exporter configured in the pipeline.
 :::
 
-### PodMonitor Configuration for Sidecar Deployments
+### Using a Custom PodMonitor
 
-Alternatively, a manually created Prometheus `PodMonitor` CR can provide fine control, for example removing duplicated labels added during Prometheus scraping.
+For scenarios that require more granular control over metric collection — such as filtering out duplicate labels introduced during Prometheus scraping — you can create a `PodMonitor` resource manually instead of relying on the automatic `ServiceMonitor` provisioning.
 
-The following example shows a `PodMonitor` CR that configures the monitoring stack to scrape the Collector metrics:
+The following example demonstrates a `PodMonitor` that targets the Collector pods and applies relabeling rules to drop redundant labels:
 
 ```yaml
 apiVersion: monitoring.coreos.com/v1
@@ -68,10 +76,10 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/name: <cr_name>-collector # 1
+      app.kubernetes.io/name: <cr_name>-collector # [!code callout]
   podMetricsEndpoints:
-  - port: metrics # 2
-  - port: promexporter # 3
+  - port: metrics # [!code callout]
+  - port: promexporter # [!code callout]
     relabelings:
     - action: labeldrop
       regex: pod
@@ -86,12 +94,8 @@ spec:
       regex: job
 ```
 
-**Callout 1**: The name of the OpenTelemetry Collector CR.
-
-**Callout 2**: The name of the internal metrics port for the OpenTelemetry Collector. This port name is always `metrics`.
-
-**Callout 3**: The name of the Prometheus exporter port for the OpenTelemetry Collector.
-
-## Additional Resources
-
-- Querying metrics by using the federation endpoint for Prometheus
+<Callouts>
+  1. Must match the name of your OpenTelemetry Collector CR, following the pattern `<cr_name>-collector`.
+  2. The port exposing the Collector's internal operational metrics. This port is always named `metrics`.
+  3. The port exposing metrics from the Prometheus exporter configured in the Collector pipeline.
+</Callouts>

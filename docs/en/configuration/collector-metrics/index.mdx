@@ -16,30 +16,35 @@ The Collector provides metrics across several key areas:
 - Dropped spans, logs, or metrics
 - Exporter and receiver statistics
 
-The Alauda build of OpenTelemetry Operator automatically creates a service named `<instance_name>-collector-monitoring` that exposes the Collector's internal metrics. This service listens on port `8888` by default.
-
-You can use these metrics for monitoring the Collector's performance, resource consumption, and other internal behaviors. You can also use a Prometheus instance or another monitoring tool to scrape these metrics from the `<instance_name>-collector-monitoring` service.
+When you deploy a Collector instance, the Operator provisions a dedicated monitoring service (`<instance_name>-collector-monitoring`) that serves these internal metrics on port `8888`. You can point Prometheus or any compatible scraping tool at this service to collect the metrics.
 
 :::note
-When the `spec.observability.metrics.enableMetrics` field in the `OpenTelemetryCollector` custom resource (CR) is set to `true`, the `OpenTelemetryCollector` CR automatically creates a Prometheus `ServiceMonitor` or `PodMonitor` CR to enable Prometheus to scrape your metrics.
+Setting `spec.observability.metrics.enableMetrics` to `true` in the `OpenTelemetryCollector` CR instructs the Operator to generate the corresponding Prometheus `ServiceMonitor` or `PodMonitor` resource automatically, so you do not need to create scrape configurations manually.
 :::
 
 ## Enabling Collector Metrics
 
 **Procedure**
 
-To enable metrics of an OpenTelemetry Collector instance, set the `spec.observability.metrics.enableMetrics` field to `true`:
+Enable metrics collection for a Collector instance by setting `spec.observability.metrics.enableMetrics` to `true` in the CR:
 
 ```yaml
 apiVersion: opentelemetry.io/v1beta1
 kind: OpenTelemetryCollector
 metadata:
   name: <name>
+  labels:
+    prometheus: kube-prometheus # [!code callout]
 spec:
   observability:
     metrics:
-      enableMetrics: true
+      enableMetrics: true # [!code callout]
 ```
+
+<Callouts>
+  1. `prometheus=kube-prometheus` is required in ACP prometheus.
+  2. Enables the Operator to automatically create `ServiceMonitor` or `PodMonitor` resources that target the Collector's metrics endpoints, including both internal telemetry and Prometheus exporter ports.
+</Callouts>
 
 **Verification**
 
@@ -49,4 +54,4 @@ You can use the Prometheus web console to verify successful configuration:
 
 2. Navigate to **Status** → **Targets**.
 
-3. Check that the `ServiceMonitors` or `PodMonitors` in the `opentelemetry-collector-<instance_name>` format have the **Up** status.
+3. Check that the `ServiceMonitors` or `PodMonitors` in the `<instance_name>-collector` format have the **Up** status.
