@@ -76,13 +76,11 @@ The Alauda Build of OpenTelemetry v2 Operator can be uninstalled using the Alaud
     kubectl get instrumentation --all-namespaces
     ```
 
-    TODO: may use other example.
-
     **Example output**
 
     ```shell {name=uninstall-otel:get-instrumentation-output}
-    NAMESPACE   NAME                AGE
-    default     my-instrumentation  1d
+    NAMESPACE      NAME      AGE    ENDPOINT   SAMPLER                    SAMPLER ARG
+    <namespace>   <name>     1d                parentbased_traceidratio   1
     ```
 
 2.  Use the namespace and name from the previous command's output to replace `<namespace>` and `<name>`, and then run the following to remove each resource:
@@ -94,7 +92,7 @@ The Alauda Build of OpenTelemetry v2 Operator can be uninstalled using the Alaud
     **Example output**
 
     ```shell {name=uninstall-otel:delete-instrumentation-output}
-    instrumentation.opentelemetry.io "my-instrumentation" deleted
+    instrumentation.opentelemetry.io "<namespace>" deleted
     ```
 
 ### Delete the `OpenTelemetryCollector` resources
@@ -108,8 +106,8 @@ The Alauda Build of OpenTelemetry v2 Operator can be uninstalled using the Alaud
     **Example output**
 
     ```shell {name=uninstall-otel:get-collector-output}
-    NAMESPACE                 NAME   MODE         VERSION   READY   AGE     IMAGE                                                           MANAGEMENT
-    opentelemetry-collector   otel   deployment   0.146.0   1/1     9m35s   build-harbor.alauda.cn/asm/opentelemetry-collector:0.147.0-r0   managed
+    NAMESPACE      NAME     MODE         VERSION   READY   AGE     IMAGE     MANAGEMENT
+    <namespace>    <name>   deployment   0.146.0   1/1     3h38m   <image>   managed
     ```
 
 2.  Use the namespace and name from the previous command's output to replace `<namespace>` and `<name>`, and then run the following to remove each resource:
@@ -121,7 +119,7 @@ The Alauda Build of OpenTelemetry v2 Operator can be uninstalled using the Alaud
     **Example output**
 
     ```shell {name=uninstall-otel:delete-collector-output}
-    opentelemetrycollector.opentelemetry.io "otel" deleted
+    opentelemetrycollector.opentelemetry.io "<name>" deleted
     ```
 
 ### Uninstall the Alauda Build of OpenTelemetry v2 Operator

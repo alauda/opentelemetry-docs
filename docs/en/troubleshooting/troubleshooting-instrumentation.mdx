@@ -22,14 +22,7 @@ When instrumentation fails to inject correctly into workloads, you can perform t
 First verify that the `Instrumentation` object was successfully created:
 
 ```bash
-kubectl get instrumentation -n <workload_project>
-```
-
-**Example output**
-
-```
-NAME                AGE
-my-instrumentation  5m
+kubectl get instrumentation -n <workload_namespace>
 ```
 
 If you do not see the expected Instrumentation object, check:
@@ -43,13 +36,13 @@ If you do not see the expected Instrumentation object, check:
 Verify that the `opentelemetry-auto-instrumentation` init-container started successfully:
 
 ```bash
-kubectl get events -n <workload_project> --field-selector involvedObject.name=<pod_name>
+kubectl get events -n <workload_namespace>
 ```
 
 View detailed pod information:
 
 ```bash
-kubectl describe pod <pod_name> -n <workload_project>
+kubectl describe pod <pod_name> -n <workload_namespace>
 ```
 
 In the output, look for the init-container section and confirm:
@@ -68,7 +61,7 @@ Ensure resources are deployed in the correct order:
 If application pods were created before the Instrumentation object, instrumentation will not be injected. You need to restart the pods:
 
 ```bash
-kubectl rollout restart deployment <deployment_name> -n <workload_project>
+kubectl rollout restart deployment <deployment_name> -n <workload_namespace>
 ```
 
 ### Searching for errors in Operator logs
@@ -90,16 +83,16 @@ Common errors include:
 Confirm that application pods have the correct instrumentation annotations:
 
 ```bash
-kubectl get pod <pod_name> -n <workload_project> -o jsonpath='{.metadata.annotations}'
+kubectl get pod <pod_name> -n <workload_namespace> -o jsonpath='{.metadata.annotations}' | jq
 ```
 
 You should see annotations similar to the following:
 
 ```json
 {
-  "instrumentation.opentelemetry.io/inject-java": "true",
-  "instrumentation.opentelemetry.io/inject-python": "true",
-  "instrumentation.opentelemetry.io/inject-nodejs": "true"
+  ...
+  "instrumentation.opentelemetry.io/inject-java": "true"
+  ...
 }
 ```
 
@@ -114,7 +107,7 @@ If annotations are missing or incorrect:
 Verify that instrumentation correctly injected environment variables:
 
 ```bash
-kubectl exec <pod_name> -n <workload_project> -- env | grep OTEL
+kubectl exec <pod_name> -n <workload_namespace> -- env | grep OTEL
 ```
 
 You should see OpenTelemetry-related environment variables, such as:
@@ -130,7 +123,7 @@ OTEL_RESOURCE_ATTRIBUTES=service.name=my-service
 Check whether instrumentation libraries were correctly installed in the container:
 
 ```bash
-kubectl exec <pod_name> -n <workload_project> -- ls -la /otel-auto-instrumentation
+kubectl exec <pod_name> -n <workload_namespace> -- sh -c 'ls -lh /otel-auto-instrumentation-*'
 ```
 
 This directory should contain instrumentation libraries and related files.
@@ -144,7 +137,7 @@ If instrumentation was successfully injected but is not generating telemetry dat
 Confirm that instrumentation is sending data to the correct endpoint:
 
 ```bash
-kubectl get instrumentation <instrumentation_name> -n <workload_project> -o jsonpath='{.spec.exporter.endpoint}'
+kubectl get instrumentation <instrumentation_name> -n <workload_namespace> -o jsonpath='{.spec.exporter.endpoint}'
 ```
 
 **Example output**
@@ -152,6 +145,14 @@ kubectl get instrumentation <instrumentation_name> -n <workload_project> -o json
 ```
 http://otel-collector:4317
 ```
+
+:::note
+If the command output is empty, the exporter endpoint might be configured through OpenTelemetry environment variables (such as `OTEL_EXPORTER_OTLP_ENDPOINT`) instead. Check the environment variables defined in the `Instrumentation` resource:
+
+```bash
+kubectl get instrumentation <instrumentation_name> -n <workload_namespace> -o yaml | grep -A 1 'OTEL_'
+```
+:::
 
 The default endpoint is `http://localhost:4317`. If you are using a custom Collector endpoint, ensure:
 
@@ -164,7 +165,7 @@ The default endpoint is `http://localhost:4317`. If you are using a custom Colle
 Check application logs for instrumentation-related error messages:
 
 ```bash
-kubectl logs <application_pod> -n <workload_project>
+kubectl logs <application_pod> -n <workload_namespace>
 ```
 
 Look for OpenTelemetry-related errors, such as:
@@ -196,111 +197,3 @@ Then access `http://localhost:8888/metrics` and look for:
 
 - `otelcol_receiver_accepted_spans`: Should be greater than 0
 - `otelcol_receiver_refused_spans`: Should be 0 or very small
-
-### Testing with a simple application
-
-Create a simple test application to verify whether instrumentation is working:
-
-```yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: test-instrumentation
-  namespace: <workload_project>
-  annotations:
-    instrumentation.opentelemetry.io/inject-python: "true"
-spec:
-  containers:
-  - name: app
-    image: python:3.9
-    command: ["python", "-c"]
-    args:
-    - |
-      from flask import Flask
-      app = Flask(__name__)
-      @app.route('/')
-      def hello():
-          return 'Hello World!'
-      app.run(host='0.0.0.0', port=8080)
-```
-
-After deployment, send requests to the application and check whether traces are generated.
-
-### Checking network connectivity
-
-Verify network connectivity from the application pod to the Collector:
-
-```bash
-kubectl exec <application_pod> -n <workload_project> -- curl -v http://<collector_service>:4318/v1/traces
-```
-
-If the connection fails, check:
-
-1. Whether the Collector Service exists
-2. Whether network policies allow traffic
-3. Whether DNS resolution is working properly
-
-### Verifying instrumentation configuration
-
-Check the complete configuration of the Instrumentation object:
-
-```bash
-kubectl get instrumentation <instrumentation_name> -n <workload_project> -o yaml
-```
-
-Confirm:
-
-- `exporter.endpoint` is configured correctly
-- Language-specific configuration (such as Java, Python, Node.js) is correct
-- Sampling rate is configured reasonably (not set to 0)
-- Resource attributes are configured correctly
-
-### Common issues and solutions
-
-**Issue: Application fails to start**
-
-- Cause: Instrumentation library is incompatible with the application
-- Solution: Check compatibility between the application's language version and the instrumentation library
-
-**Issue: Performance degradation**
-
-- Cause: Instrumentation overhead is too high
-- Solution: Adjust sampling rate or disable certain instrumentation features
-
-**Issue: Incomplete data**
-
-- Cause: Sampling rate is set too low
-- Solution: Increase sampling rate or use adaptive sampling
-
-**Issue: Connection timeout**
-
-- Cause: Collector is unreachable or overloaded
-- Solution: Check Collector status, increase number of Collector replicas
-
-## Best practices
-
-**Development environment**
-
-- Use Debug Exporter to verify data generation
-- Set a high sampling rate (such as 100%)
-- Enable detailed logging for debugging
-
-**Production environment**
-
-- Use a reasonable sampling rate (such as 10-20%)
-- Monitor the performance impact of instrumentation
-- Regularly check Collector and application logs
-
-**Troubleshooting workflow**
-
-1. Verify the Instrumentation object exists
-2. Check whether the init-container succeeded
-3. Confirm environment variables and annotations are correct
-4. Verify endpoint configuration
-5. Check application and Collector logs
-6. Test network connectivity
-7. Validate using a simple application
-
-:::tip
-It is recommended to test instrumentation configuration in non-production environments first, and only apply to production after confirming everything works correctly.
-:::

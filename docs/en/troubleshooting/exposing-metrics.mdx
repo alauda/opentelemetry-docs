@@ -31,115 +31,67 @@ The Collector exposes the following metrics related to data processing volume:
 - `otelcol_exporter_sent_metrics`: Number of metric data points sent by exporters
 - `otelcol_exporter_enqueue_failed_metrics`: Number of metric data points that failed to enqueue in exporters
 
-## Accessing the metrics
-
-You can access these metrics in multiple ways to monitor the Collector's operational status.
-
-### Using port-forward
-
-The simplest approach is to use `kubectl port-forward` to forward the Collector's metrics port to your local machine:
-
-```bash
-kubectl port-forward -n <namespace> <collector-pod-name> 8888:8888
-```
-
-Then access `http://localhost:8888/metrics` in your browser to view the metrics.
-
-### Using ServiceMonitor
-
-If Prometheus Operator is installed in your cluster, you can create a `ServiceMonitor` resource to automatically scrape the Collector's metrics:
-
-```yaml
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: otel-collector
-  namespace: opentelemetry-collector
-spec:
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: otel-collector
-  endpoints:
-  - port: monitoring
-    interval: 30s
-    path: /metrics
-```
-
-:::note
-Ensure that the Collector's Service exposes the metrics port (typically 8888).
-:::
-
 ## Configuring metrics exposure
 
-You can configure detailed settings for metrics exposure in the `OpenTelemetryCollector` custom resource:
+### Configuring the Prometheus metrics endpoint
+
+To expose the Collector's internal metrics, configure a Prometheus pull exporter in the `OpenTelemetryCollector` custom resource (CR). The following example configures the Collector to expose metrics in Prometheus format on port `8888`:
 
 ```yaml
 apiVersion: opentelemetry.io/v1beta1
 kind: OpenTelemetryCollector
 metadata:
-  name: otel
-  namespace: opentelemetry-collector
+  name: <collector_name>
 spec:
   config:
     service:
       telemetry:
         metrics:
-          level: detailed
-          address: 0.0.0.0:8888
+          readers:
+            - pull:
+                exporter:
+                  prometheus:
+                    host: "0.0.0.0"
+                    port: 8888
 ```
 
-**Configuration parameters**
+### Enabling metrics scraping
 
-- `level`: Metrics detail level, options are `none`, `basic`, `normal`, `detailed`
-- `address`: Address and port where metrics are exposed
+To enable Prometheus to automatically scrape the Collector metrics, set the `spec.observability.metrics.enableMetrics` field to `true` in the `OpenTelemetryCollector` CR. The Operator automatically creates a `ServiceMonitor` or `PodMonitor` resource based on the Collector's deployment mode:
 
-## Analyzing metrics
+```yaml
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: <collector_name>
+spec:
+  observability:
+    metrics:
+      enableMetrics: true
+```
 
-By analyzing these metrics, you can:
+### Manual verification (optional)
 
-**Monitor data flow**
-
-- Compare `accepted` and `refused` metrics to identify data rejection scenarios
-- Monitor `sent` metrics to confirm successful data export
-- Check `enqueue_failed` metrics to discover queue issues
-
-**Diagnose performance problems**
-
-- If `refused` metrics continuously increase, the Collector may be overloaded
-- If `enqueue_failed` metrics increase, queue size may need adjustment
-- If there is a large gap between `sent` and `accepted` metrics, check exporter configuration
-
-**Example queries**
-
-Use Prometheus Query Language (PromQL) to analyze metrics:
+You can verify the metrics endpoint directly by using `kubectl port-forward` to access the Collector's metrics port:
 
 ```shell
-# Calculate span acceptance rate
-rate(otelcol_receiver_accepted_spans[5m])
-
-# Calculate span refusal rate
-rate(otelcol_receiver_refused_spans[5m])
-
-# Calculate export success rate
-rate(otelcol_exporter_sent_spans[5m]) / rate(otelcol_receiver_accepted_spans[5m])
+kubectl port-forward <collector_pod_name> 8888:8888
 ```
 
-## Troubleshooting metrics issues
+Then, open `http://localhost:8888/metrics` in your browser or use `curl` to verify that the metrics are exposed:
 
-**Cannot access metrics endpoint**
+```shell
+curl http://localhost:8888/metrics
+```
 
-If you cannot access the metrics endpoint, check:
+## Accessing the metrics
 
-1. Whether the Collector pod is running normally
-2. Whether the metrics port is correctly configured
-3. Whether network policies allow access to the metrics port
-4. Whether the Service correctly exposes the metrics port
+After enabling metrics scraping, you can verify and access the Collector metrics through the Prometheus web console in Alauda Container Platform:
 
-**Inaccurate metrics data**
+1. Access the Prometheus web console in your Alauda Container Platform cluster.
 
-If metrics data appears inaccurate:
+2. Navigate to **Status** → **Targets**.
 
-1. Confirm the metrics level is set to `detailed`
-2. Check whether the Collector configuration is correct
-3. Verify time synchronization is working properly
-4. Review Collector logs for error messages
+3. Verify that the `ServiceMonitors` or `PodMonitors` in the `<instance_name>-collector` format have the **Up** status.
+
+Once the targets are confirmed as **Up**, you can use the Prometheus query interface to explore the Collector metrics listed in the [Available metrics](#available-metrics) section.

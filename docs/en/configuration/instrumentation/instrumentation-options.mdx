@@ -6,26 +6,89 @@ weight: 20
 
 The `Instrumentation` custom resource provides various configuration options to control how auto-instrumentation is applied to your applications. These options allow you to customize the instrumentation behavior, specify resource requirements, and configure language-specific settings.
 
+:::warning
+Alauda build of OpenTelemetry v2 Operator provides the auto-injection mechanism for instrumentation, but does not include pre-built instrumentation libraries or container images. You need to build your own instrumentation images or use community-provided images.
+:::
+
 ## Basic Instrumentation Configuration
 
-An `Instrumentation` custom resource defines the instrumentation settings that will be applied to annotated pods. The basic structure includes:
+The `Instrumentation` custom resource (CR) defines how telemetry data is collected from your applications. It provides settings for the exporter endpoint, context propagation, sampling, and language-specific instrumentation.
 
 ```yaml
 apiVersion: opentelemetry.io/v1alpha1
 kind: Instrumentation
 metadata:
   name: my-instrumentation
-  namespace: application-namespace
 spec:
-  exporter:
-    endpoint: http://otel-collector:4318
-  propagators:
+  env:
+    - name: OTEL_EXPORTER_OTLP_TIMEOUT
+      value: "20"
+  exporter: # [!code callout]
+    endpoint: 'http://otel-collector.otel-collector.svc:4317'
+  propagators: # [!code callout]
     - tracecontext
     - baggage
-  sampler:
+    - b3multi
+  sampler: # [!code callout]
     type: parentbased_traceidratio
     argument: "0.25"
+  python: # [!code callout]
+    env:
+      - name: OTEL_EXPORTER_OTLP_ENDPOINT
+        value: 'http://otel-collector.otel-collector.svc:4318'
+  dotnet: # [!code callout]
+    env:
+      - name: OTEL_EXPORTER_OTLP_ENDPOINT
+        value: 'http://otel-collector.otel-collector.svc:4318'
+  go: # [!code callout]
+    env:
+      - name: OTEL_EXPORTER_OTLP_ENDPOINT
+        value: 'http://otel-collector.otel-collector.svc:4318'
 ```
+
+<Callouts>
+1. The exporter endpoint where the Collector receives telemetry data. The default protocol is gRPC on port `4317`.
+2. Context propagation formats. Supported values include `tracecontext`, `baggage`, `b3`, `b3multi`, `jaeger`, `ottrace`, and `none`.
+3. The sampler configuration to control the volume of trace data. The `parentbased_traceidratio` type with an argument of `0.25` means 25% of new root traces are sampled.
+4. Python auto-instrumentation uses `otlp/http` by default. The endpoint must point to the HTTP port `4318` of the Collector.
+5. .NET auto-instrumentation uses `otlp/http` by default. The endpoint must point to the HTTP port `4318` of the Collector.
+6. Go auto-instrumentation uses `otlp/http` by default. The endpoint must point to the HTTP port `4318` of the Collector.
+</Callouts>
+
+### Instrumentation CR Parameters
+
+The following table describes the parameters that can be configured in the `Instrumentation` custom resource.
+
+| Parameter | Description | Values |
+| :-------- | :---------- | :----- |
+| `env` | Common environment variables shared across all instrumentation types. | |
+| `exporter` | Exporter configuration for telemetry data delivery. | |
+| `propagators` | Inter-process context propagation configuration. | `tracecontext`, `baggage`, `b3`, `b3multi`, `jaeger`, `ottrace`, `none` |
+| `resource` | Resource attributes configuration for telemetry identification. | |
+| `sampler` | Sampling configuration to control telemetry data volume. | |
+| `apacheHttpd` | Apache HTTP Server instrumentation settings. | |
+| `dotnet` | .NET instrumentation settings. | |
+| `go` | Go instrumentation settings. | |
+| `java` | Java instrumentation settings. | |
+| `nodejs` | Node.js instrumentation settings. | |
+| `python` | Python instrumentation settings. | |
+
+### Default Auto-Instrumentation Protocols
+
+Each auto-instrumentation language uses a default protocol to export telemetry data to the Collector. The following table lists the default protocols.
+
+| Auto-instrumentation | Default Protocol |
+| :------------------- | :--------------- |
+| Java 1.x | `otlp/grpc` |
+| Java 2.x | `otlp/http` |
+| Python | `otlp/http` |
+| .NET | `otlp/http` |
+| Go | `otlp/http` |
+| Apache HTTP Server | `otlp/grpc` |
+
+:::note
+You can configure environment variables on the `Instrumentation` CR. However, after the Operator injects these environment variables into the application container, they cannot be removed by simply updating or deleting the `Instrumentation` CR. To remove injected environment variables, you must restart or redeploy the affected pods.
+:::
 
 ## Annotation-based Injection
 
@@ -44,6 +107,8 @@ spec:
     image: myapp:latest
 ```
 
+### Language-specific Injection
+
 The annotation format is `instrumentation.opentelemetry.io/inject-<language>`, where `<language>` can be:
 
 - `apache-httpd` - For Apache HTTP Server
@@ -52,6 +117,23 @@ The annotation format is `instrumentation.opentelemetry.io/inject-<language>`, w
 - `java` - For Java applications
 - `nodejs` - For Node.js applications
 - `python` - For Python applications
+
+### SDK Variable Injection
+
+You can use the `instrumentation.opentelemetry.io/inject-sdk` annotation to instruct the OpenTelemetry Operator to inject SDK environment variables into your pod.
+
+:::tip
+The `inject-sdk` annotation is useful when you want to inject SDK environment variables without enabling language-specific auto-instrumentation. This is particularly helpful for applications that already include OpenTelemetry SDK dependencies but need centralized configuration management.
+:::
+
+### Supported Values for Injection Annotations
+
+| Value | Description |
+| :---- | :---------- |
+| `"true"` | Injects the `Instrumentation` resource with the default name from the current namespace |
+| `"false"` | Injects no `Instrumentation` resource |
+| `"<instrumentation_name>"` | Specifies the name of the `Instrumentation` resource to inject from the current namespace |
+| `"<namespace>/<instrumentation_name>"` | Specifies the name of the `Instrumentation` resource to inject from another namespace |
 
 ## Namespace-level Instrumentation
 

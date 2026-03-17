@@ -41,8 +41,8 @@ config:
 **Configuration parameters**
 
 - `verbosity`: Output detail level, options:
-  - `basic`: Basic information
-  - `normal`: Standard information (default)
+  - `basic`: Basic information (default)
+  - `normal`: Standard information
   - `detailed`: Detailed information, including complete data content
 
 ## Viewing exported data
@@ -55,16 +55,8 @@ kubectl logs <collector-pod-name> -n <namespace> -f
 
 **Example output**
 
-Traces output example:
-
 ```
-2024-03-12T10:30:45.123Z	info	debugexporter/debug_exporter.go:40	TracesExporter	{"kind": "exporter", "data_type": "traces", "name": "debug", "resource spans": 1, "spans": 3}
-```
-
-Metrics output example:
-
-```
-2024-03-12T10:30:46.456Z	info	debugexporter/debug_exporter.go:50	MetricsExporter	{"kind": "exporter", "data_type": "metrics", "name": "debug", "resource metrics": 1, "metrics": 5, "data points": 10}
+2025-04-17T10:40:44.559+0200    info    Traces  {"otelcol.component.id": "debug/basic", "otelcol.component.kind": "Exporter", "otelcol.signal": "traces", "resource spans": 1, "spans": 2}
 ```
 
 ## Using Debug Exporter with other exporters
@@ -89,96 +81,3 @@ config:
 ```
 
 In this configuration, traces data is sent to both the Debug Exporter and the OTLP exporter.
-
-## Filtering debug output
-
-If the Debug Exporter produces excessive data output, you can use processors to filter data:
-
-```yaml
-config:
-  processors:
-    filter/debug:
-      traces:
-        span:
-          - 'attributes["http.status_code"] >= 400'
-  exporters:
-    debug:
-      verbosity: detailed
-  service:
-    pipelines:
-      traces:
-        receivers: [otlp]
-        processors: [filter/debug]
-        exporters: [debug]
-```
-
-This configuration only outputs spans with HTTP status codes greater than or equal to 400 to the Debug Exporter.
-
-## Troubleshooting with Debug Exporter
-
-**Verifying data reception**
-
-If you suspect the Collector is not receiving data, enabling the Debug Exporter can quickly confirm:
-
-1. Configure the Debug Exporter and set `verbosity: detailed`
-2. View the Collector logs
-3. If no data output appears in the logs, the Collector is not receiving data
-
-**Checking data format**
-
-Use the Debug Exporter to view complete data content and confirm:
-
-- Whether the data format is correct
-- Whether required attributes are present
-- Whether data values meet expectations
-
-**Debugging processors**
-
-Add Debug Exporters before and after processors to compare data changes:
-
-```yaml
-config:
-  exporters:
-    debug/before:
-      verbosity: detailed
-    debug/after:
-      verbosity: detailed
-  service:
-    pipelines:
-      traces:
-        receivers: [otlp]
-        processors: []
-        exporters: [debug/before]
-      traces/processed:
-        receivers: [otlp]
-        processors: [batch, attributes]
-        exporters: [debug/after]
-```
-
-## Performance considerations
-
-The Debug Exporter impacts performance, especially in high-traffic scenarios:
-
-- Outputting detailed logs consumes CPU and memory
-- Large log volumes may lead to disk space exhaustion
-- Log writing may become a performance bottleneck
-
-:::tip
-In production environments, it is recommended to enable the Debug Exporter only temporarily when needed, and disable it immediately after troubleshooting is complete.
-:::
-
-## Disabling Debug Exporter
-
-After completing troubleshooting, remove the Debug Exporter from the pipeline configuration:
-
-```yaml
-config:
-  service:
-    pipelines:
-      traces:
-        receivers: [otlp]
-        processors: [batch]
-        exporters: [otlp]  # Remove debug
-```
-
-After applying the configuration, the Collector automatically reloads the configuration and stops outputting debug logs.

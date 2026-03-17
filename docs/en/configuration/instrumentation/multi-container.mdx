@@ -78,48 +78,7 @@ Where `<language>` can be:
 - `dotnet`
 - `go`
 - `apache-httpd`
-
-## Shared Volume Considerations
-
-The Operator creates shared volumes to inject instrumentation libraries. In multi-container pods, these volumes are mounted into each instrumented container:
-
-```yaml
-volumes:
-- name: opentelemetry-auto-instrumentation-java
-  emptyDir: {}
-- name: opentelemetry-auto-instrumentation-python
-  emptyDir: {}
-```
-
-Each instrumentation type uses a separate volume to avoid conflicts.
-
-## Resource Allocation
-
-When multiple containers are instrumented, each receives its own init container for instrumentation injection. Consider the cumulative resource requirements:
-
-```yaml
-apiVersion: opentelemetry.io/v1alpha1
-kind: Instrumentation
-metadata:
-  name: multi-container-instrumentation
-spec:
-  java:
-    resources:
-      limits:
-        cpu: 500m
-        memory: 512Mi
-      requests:
-        cpu: 100m
-        memory: 128Mi
-  python:
-    resources:
-      limits:
-        cpu: 200m
-        memory: 256Mi
-      requests:
-        cpu: 50m
-        memory: 64Mi
-```
+- `sdk`
 
 ## Environment Variable Isolation
 
@@ -139,76 +98,39 @@ spec:
 
 ## Example: Multi-language Application
 
-Complete example of a pod with multiple instrumented containers:
+In the following example, `myapp` and `myapp2` containers will be instrumented using Java and `myapp3` using Python instrumentation:
 
 ```yaml
-apiVersion: opentelemetry.io/v1alpha1
-kind: Instrumentation
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: polyglot-instrumentation
-  namespace: production
+  name: my-deployment-with-multi-containers-multi-instrumentations
 spec:
-  exporter:
-    endpoint: http://otel-collector:4318
-  java:
-    image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:latest
-    env:
-      - name: OTEL_SERVICE_NAME
-        value: api-service
-  python:
-    image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-python:latest
-    env:
-      - name: OTEL_SERVICE_NAME
-        value: worker-service
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: polyglot-app
-  namespace: production
-  annotations:
-    instrumentation.opentelemetry.io/inject-java: "production/polyglot-instrumentation"
-    instrumentation.opentelemetry.io/inject-python: "production/polyglot-instrumentation"
-    instrumentation.opentelemetry.io/java-container-names: "api"
-    instrumentation.opentelemetry.io/python-container-names: "worker"
-spec:
-  containers:
-  - name: api
-    image: myapi:latest
-    ports:
-    - containerPort: 8080
-  - name: worker
-    image: myworker:latest
-  - name: nginx
-    image: nginx:latest
-    ports:
-    - containerPort: 80
+  selector:
+    matchLabels:
+      app: my-pod-with-multi-containers-multi-instrumentations
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: my-pod-with-multi-containers-multi-instrumentations
+      annotations:
+        instrumentation.opentelemetry.io/inject-java: "true"
+        instrumentation.opentelemetry.io/java-container-names: "myapp,myapp2"
+        instrumentation.opentelemetry.io/inject-python: "true"
+        instrumentation.opentelemetry.io/python-container-names: "myapp3"
+    spec:
+      containers:
+        - name: myapp
+          image: myImage1
+        - name: myapp2
+          image: myImage2
+        - name: myapp3
+          image: myImage3
 ```
 
-:::tip
-When using multiple instrumentations in a single pod, ensure that each instrumented container has a unique service name to distinguish telemetry data in your observability backend.
-:::
+## Important Notes
 
-## Troubleshooting Multi-container Instrumentation
-
-### Verifying Container Selection
-
-Check which containers were instrumented:
-
-```bash
-kubectl describe pod <pod-name>
-```
-
-Look for the init containers and volume mounts in each container.
-
-### Common Issues
-
-**Wrong container instrumented**: Verify the `container-names` annotation specifies the correct container names.
-
-**Missing instrumentation**: Ensure the annotation format is correct and the Instrumentation CR exists in the correct namespace.
-
-**Resource constraints**: Check that the pod has sufficient resources for multiple init containers and instrumentation libraries.
-
-:::note
-The order of containers in the pod specification does not affect which containers are instrumented. Only the `container-names` annotation determines the target containers.
-:::
+- Go auto-instrumentation **does not** support multicontainer pods. When injecting Go auto-instrumentation the first container should be the only you want to instrument.
+- This type of instrumentation **does not** allow to instrument a container with multiple language instrumentations.
+- `instrumentation.opentelemetry.io/container-names` annotation is not used for this feature.
