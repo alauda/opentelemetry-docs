@@ -21,8 +21,8 @@ __metadata:
   linkType: hard
 
 "@alauda/doom@npm:^1.18.2":
-  version: 1.21.5
-  resolution: "@alauda/doom@npm:1.21.5"
+  version: 1.22.1
+  resolution: "@alauda/doom@npm:1.22.1"
   dependencies:
     "@alauda/doom-export": "npm:^0.4.1"
     "@cspell/eslint-plugin": "npm:^9.7.0"
@@ -50,6 +50,7 @@ __metadata:
     eslint: "npm:^9.39.3"
     eslint-plugin-mdx: "npm:^3.7.0"
     globals: "npm:^17.4.0"
+    hastscript: "npm:^9.0.1"
     html-tag-names: "npm:^2.1.0"
     jsencrypt: "npm:^3.5.4"
     masonry-layout: "npm:^4.2.2"
@@ -92,11 +93,11 @@ __metadata:
     unist-util-position: "npm:^5.0.0"
     unist-util-visit-parents: "npm:^6.0.2"
     x-fetch: "npm:^0.2.6"
-    yaml: "npm:^2.8.2"
+    yaml: "npm:^2.8.3"
     yoctocolors: "npm:^2.1.2"
   bin:
     doom: lib/cli/index.js
-  checksum: 10c0/17304f96237b36a9b659ff7d2d4afb21fc1cba745639d7096f1afe4e72c5f92f4cc8e027be0a2dc3ca75c43100b874cf93bad92ab76daab21254f7e3985eac7f
+  checksum: 10c0/0dd61f77b00760b462770923ea5107156870167a2b6bf4033ca087fa35e83da979fa0e67fcaaee7fcb983e39afdf57c83c8c27c0e7b137a2b9fe0f565fd99ca7
   languageName: node
   linkType: hard
 
@@ -5827,7 +5828,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"hastscript@npm:^9.0.0":
+"hastscript@npm:^9.0.0, hastscript@npm:^9.0.1":
   version: 9.0.1
   resolution: "hastscript@npm:9.0.1"
   dependencies:
@@ -10497,6 +10498,15 @@ __metadata:
   bin:
     yaml: bin.mjs
   checksum: 10c0/703e4dc1e34b324aa66876d63618dcacb9ed49f7e7fe9b70f1e703645be8d640f68ab84f12b86df8ac960bac37acf5513e115de7c970940617ce0343c8c9cd96
+  languageName: node
+  linkType: hard
+
+"yaml@npm:^2.8.3":
+  version: 2.8.3
+  resolution: "yaml@npm:2.8.3"
+  bin:
+    yaml: bin.mjs
+  checksum: 10c0/ddff0e11c1b467728d7eb4633db61c5f5de3d8e9373cf84d08fb0cdee03e1f58f02b9f1c51a4a8a865751695addbd465a77f73f1079be91fe5493b29c305fd77
   languageName: node
   linkType: hard
 
