@@ -1,0 +1,34 @@
+---
+weight: 120
+---
+
+# Using the Instrumentation CR with Service Mesh
+
+When you use the `Instrumentation` custom resource (CR) with a service mesh, the required propagator depends on the tracing protocol configured in Istio.
+
+Istio leverages Envoy's distributed tracing capabilities to provide tracing integration out of the box. Most tracing backends now accept the `OpenTelemetry` protocol to receive traces, although Istio also supports legacy tracing protocols such as `Zipkin`.
+
+## Istio Using the `OpenTelemetry` Protocol
+
+If Istio is configured to export traces by using the `OpenTelemetry` protocol, no additional propagator changes are required in the `Instrumentation` CR. The default propagator settings continue to work as expected.
+
+## Istio Using the `Zipkin` Protocol
+
+If Istio is configured to export traces by using the `Zipkin` protocol, you must configure the `b3multi` propagator in the `Instrumentation` resource so that trace context is propagated correctly across the mesh.
+
+```yaml
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: my-instrumentation
+spec:
+  ...
+  propagators:
+    - tracecontext
+    - baggage
+    - b3multi # [!code callout]
+```
+
+<Callouts>
+1. Configure `b3multi` when Istio uses the `Zipkin` protocol for trace propagation.
+</Callouts>
