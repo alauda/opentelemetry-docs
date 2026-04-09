@@ -4,59 +4,45 @@ weight: 20
 
 # Forwarding Telemetry Data to Third-Party Systems
 
-You can forward telemetry data to third-party observability systems by deploying a custom OpenTelemetry Collector and configuring exporters that match the destination backend requirements.
+The OpenTelemetry Collector exports telemetry data by using the OTLP exporter over the OpenTelemetry Protocol (OTLP), which supports both gRPC and HTTP transports. If you need to forward telemetry data to a third-party system that does not support OTLP or another protocol supported by Alauda Build of OpenTelemetry v2, you can deploy an unsupported custom OpenTelemetry Collector that receives telemetry data over OTLP and forwards it to the target system by using a custom exporter.
+
+:::warning
+Alauda does not support custom Collector deployments for third-party forwarding scenarios.
+:::
 
 ## Prerequisites
 
-- Verify that the target third-party system provides an OTLP-compatible endpoint or another exporter protocol supported by the OpenTelemetry Collector.
-- Prepare the endpoint URL, port, authentication settings, and TLS requirements for the target system.
-- An active ACP CLI (`kubectl`) session with permissions to create `ConfigMap`, `Deployment`, and `Service` resources in the target namespace.
+- You have developed your own unsupported custom exporter that can forward telemetry data to your third-party system.
+- An active ACP CLI (`kubectl`) session by a cluster administrator with the `cluster-admin` role.
 
 ## Procedure
 
-1. Create a `ConfigMap` that stores the custom Collector configuration:
+1. Create a `ConfigMap` for the custom Collector configuration:
 
    ```yaml
    apiVersion: v1
    kind: ConfigMap
    metadata:
      name: custom-otel-collector-config
-     namespace: observability
    data:
-     collector.yaml: |
+     otel-collector-config.yaml: | # [!code callout]
        receivers:
          otlp:
            protocols:
              grpc:
-               endpoint: 0.0.0.0:4317
-             http:
-               endpoint: 0.0.0.0:4318
-       processors:
-         batch: {}
-         memory_limiter:
-           check_interval: 1s
-           limit_percentage: 50
-           spike_limit_percentage: 30
        exporters:
-         otlp:
-           endpoint: third-party.example.com:4317
-           tls:
-             insecure: false
+         # Replace debug with the exporter required by your third-party system.
+         debug: {}
        service:
          pipelines:
            traces:
              receivers: [otlp]
-             processors: [memory_limiter, batch]
-             exporters: [otlp]
-           metrics:
-             receivers: [otlp]
-             processors: [memory_limiter, batch]
-             exporters: [otlp]
-           logs:
-             receivers: [otlp]
-             processors: [memory_limiter, batch]
-             exporters: [otlp]
+             exporters: [debug]
    ```
+
+   <Callouts>
+    1. Replace `debug` with the exporter required by your third-party system.
+   </Callouts>
 
 2. Deploy the custom Collector and mount the configuration from the `ConfigMap`:
 
@@ -64,34 +50,40 @@ You can forward telemetry data to third-party observability systems by deploying
    apiVersion: apps/v1
    kind: Deployment
    metadata:
-     name: custom-otel-collector
-     namespace: observability
+     name: custom-otel-collector-deployment
    spec:
      replicas: 1
      selector:
        matchLabels:
-         app: custom-otel-collector
+         component: otel-collector
      template:
        metadata:
          labels:
-           app: custom-otel-collector
+           component: otel-collector
        spec:
          containers:
-         - name: otel-collector
-           image: otel/opentelemetry-collector-contrib:latest
-           args:
-           - "--config=/conf/collector.yaml"
+         - name: opentelemetry-collector
+           image: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:latest # [!code callout]
+           command:
+           - "/otelcol-contrib"
+           - "--config=/conf/otel-collector-config.yaml"
            ports:
-           - containerPort: 4317
-           - containerPort: 4318
+           - name: otlp
+             containerPort: 4317
+             protocol: TCP
            volumeMounts:
-           - name: collector-config
+           - name: otel-collector-config-vol
              mountPath: /conf
+             readOnly: true
          volumes:
-         - name: collector-config
+         - name: otel-collector-config-vol
            configMap:
              name: custom-otel-collector-config
    ```
+
+   <Callouts>
+    1. Replace the image with the required OpenTelemetry Collector version that includes the exporter needed by your third-party system.
+   </Callouts>
 
 3. Expose the custom Collector with a `Service`:
 
@@ -99,19 +91,22 @@ You can forward telemetry data to third-party observability systems by deploying
    apiVersion: v1
    kind: Service
    metadata:
-     name: custom-otel-collector
-     namespace: observability
+     name: custom-otel-collector-service # [!code callout]
+     labels:
+       component: otel-collector
    spec:
-     selector:
-       app: custom-otel-collector
+     type: ClusterIP
      ports:
      - name: otlp-grpc
        port: 4317
        targetPort: 4317
-     - name: otlp-http
-       port: 4318
-       targetPort: 4318
+     selector:
+       component: otel-collector
    ```
+
+   <Callouts>
+    1. The service name is used when you configure the OTLP exporter in the Alauda Build of OpenTelemetry v2 Collector custom resource.
+   </Callouts>
 
 4. Apply the resources:
 
@@ -120,9 +115,3 @@ You can forward telemetry data to third-party observability systems by deploying
    kubectl apply -f custom-collector-deployment.yaml
    kubectl apply -f custom-collector-service.yaml
    ```
-
-   :::note
-   Update the exporter configuration to match the protocol, authentication method, and TLS requirements of your third-party system before you apply the resources.
-   :::
-
-Applications can send telemetry data to the exposed Collector service, and the custom Collector forwards the data to the configured third-party backend.
