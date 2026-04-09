@@ -1,0 +1,99 @@
+---
+weight: 10
+---
+
+# Forwarding Traces to a Jaeger Instance
+
+To send traces to a Jaeger instance, deploy an OpenTelemetry Collector in `deployment` mode and configure a trace pipeline that exports data to the Jaeger collector endpoint.
+
+## Prerequisites
+
+- Alauda build of OpenTelemetry v2 Operator is installed.
+- Alauda Build of Jaeger v2 is installed and deployed.
+- An active ACP CLI (`kubectl`) session by a cluster administrator with the `cluster-admin` role.
+- Enable Automatic RBAC creation by following the instructions in [Procedure](../../installing/rbac-resources.mdx#procedure).
+
+## Procedure
+
+1. Create an `OpenTelemetryCollector` resource:
+
+   ```yaml
+   kubectl apply -f - <<EOF
+   apiVersion: opentelemetry.io/v1beta1
+   kind: OpenTelemetryCollector
+   metadata:
+     name: otel
+     namespace: observability # [!code callout]
+   spec:
+     mode: deployment
+     config:
+       receivers:
+         jaeger:
+           protocols:
+             grpc: {}
+             thrift_binary: {}
+             thrift_compact: {}
+             thrift_http: {}
+         otlp:
+           protocols:
+             grpc:
+               endpoint: 0.0.0.0:4317
+             http:
+               endpoint: 0.0.0.0:4318
+         zipkin: {}
+       processors:
+         batch: {}
+         k8sattributes: {}
+         memory_limiter:
+           check_interval: 1s
+           limit_percentage: 50
+           spike_limit_percentage: 30
+       exporters:
+         otlp/traces:
+           endpoint: "<jaeger-instance-name>-collector:4317" # [!code callout]
+           tls:
+             insecure: true
+       service:
+         pipelines:
+           traces:
+             receivers: [jaeger, otlp, zipkin] # [!code callout]
+             processors: [memory_limiter, k8sattributes, batch]
+             exporters: [otlp/traces]
+   EOF
+   ```
+
+   <Callouts>
+    1. The namespace determines where the Collector resources are created.
+    2. The exporter endpoint must point to the Jaeger collector service. Replace `<jaeger-instance-name>-collector:4317` with the actual service name of your Jaeger deployment.
+    3. This trace pipeline accepts Jaeger, OTLP, and Zipkin traffic. Configure your instrumented applications to send traces by using one of these receiver protocols.
+   </Callouts>
+
+After the Collector is running, instrumented applications can send trace data to the Collector service endpoint, and the Collector forwards the traces to Jaeger.
+
+:::tip
+You can deploy `telemetrygen` as a test client:
+
+```yaml
+kubectl apply -f - <<EOF
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: telemetrygen
+  namespace: observability
+spec:
+  template:
+    spec:
+      containers:
+      - name: telemetrygen
+        image: ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen:latest
+        args:
+        - traces
+        - --otlp-endpoint=otel-collector.observability.svc.cluster.local:4317
+        - --otlp-insecure
+        - --duration=60s
+        - --workers=1
+      restartPolicy: Never
+  backoffLimit: 4
+EOF
+```
+:::

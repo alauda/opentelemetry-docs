@@ -71,9 +71,9 @@ spec:
 
 The following table describes the main configuration parameters used by the Operator to define the OpenTelemetry Collector:
 
-| Parameter | Description | Available Options | Default |
+| Parameter | Description | Values | Default |
 |-----------|-------------|-------------------|---------|
-| `receivers` | Defines how data enters the Collector. At least one receiver must be enabled in a pipeline for valid configuration. | otlp, jaeger, prometheus, zipkin, kafka, opencensus | None |
+| `receivers` | Defines how data enters the Collector. At least one receiver must be enabled in a pipeline for valid configuration. | otlp, jaeger, prometheus, zipkin, kafka | None |
 | `processors` | Defines data transformation operations applied between receiving and exporting. Processors are optional. | batch, memory_limiter, resourcedetection, attributes, span, k8sattributes, filter, routing | None |
 | `exporters` | Defines destinations for processed data. At least one exporter must be enabled in a pipeline for valid configuration. | otlp, otlphttp, debug, prometheus, kafka | None |
 | `connectors` | Defines components that join pipeline pairs by consuming data as exporters and emitting data as receivers. | spanmetrics, count, routing, forward | None |
