@@ -14,8 +14,6 @@ Instead of injecting a sidecar, you can deploy the OpenTelemetry Collector as a 
 
 ## Procedure
 
-TOOD: test.
-
 1. Deploy the OpenTelemetry Collector instance with the `deployment` mode by running the following command:
 
    ```bash
@@ -35,7 +33,6 @@ TOOD: test.
              thrift_binary: {}
              thrift_compact: {}
              thrift_http: {}
-         opencensus: {}
          otlp:
            protocols:
              grpc:
@@ -58,7 +55,7 @@ TOOD: test.
        service:
          pipelines:
            traces:
-             receivers: [jaeger, opencensus, otlp, zipkin]
+             receivers: [jaeger, otlp, zipkin]
              processors: [memory_limiter, k8sattributes, batch]
              exporters: [otlp]
    EOF
