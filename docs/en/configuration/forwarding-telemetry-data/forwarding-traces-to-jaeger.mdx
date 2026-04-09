@@ -17,13 +17,13 @@ To send traces to a Jaeger instance, deploy an OpenTelemetry Collector in `deplo
 
 1. Create an `OpenTelemetryCollector` resource:
 
-   ```bash
+   ```yaml
    kubectl apply -f - <<EOF
    apiVersion: opentelemetry.io/v1beta1
    kind: OpenTelemetryCollector
    metadata:
      name: otel
-     namespace: observability
+     namespace: observability # [!code callout]
    spec:
      mode: deployment
      config:
@@ -49,21 +49,51 @@ To send traces to a Jaeger instance, deploy an OpenTelemetry Collector in `deplo
            limit_percentage: 50
            spike_limit_percentage: 30
        exporters:
-         otlp:
-           endpoint: "jaeger-<instance-name>-collector:4317"
+         otlp/traces:
+           endpoint: "<jaeger-instance-name>-collector:4317" # [!code callout]
            tls:
              insecure: true
        service:
          pipelines:
            traces:
-             receivers: [jaeger, otlp, zipkin]
+             receivers: [jaeger, otlp, zipkin] # [!code callout]
              processors: [memory_limiter, k8sattributes, batch]
-             exporters: [otlp]
+             exporters: [otlp/traces]
    EOF
    ```
 
-   :::note
-   Replace `jaeger-<instance-name>-collector` with the actual service name of your Jaeger collector. The service name typically follows the `<instance-name>-collector` pattern.
-   :::
+   <Callouts>
+    1. The namespace determines where the Collector resources are created.
+    2. The exporter endpoint must point to the Jaeger collector service. Replace `<jaeger-instance-name>-collector:4317` with the actual service name of your Jaeger deployment.
+    3. This trace pipeline accepts Jaeger, OTLP, and Zipkin traffic. Configure your instrumented applications to send traces by using one of these receiver protocols.
+   </Callouts>
 
 After the Collector is running, instrumented applications can send trace data to the Collector service endpoint, and the Collector forwards the traces to Jaeger.
+
+:::tip
+You can deploy `telemetrygen` as a test client:
+
+```yaml
+kubectl apply -f - <<EOF
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: telemetrygen
+  namespace: observability
+spec:
+  template:
+    spec:
+      containers:
+      - name: telemetrygen
+        image: ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen:latest
+        args:
+        - traces
+        - --otlp-endpoint=otel-collector.observability.svc.cluster.local:4317
+        - --otlp-insecure
+        - --duration=30s
+        - --workers=1
+      restartPolicy: Never
+  backoffLimit: 4
+EOF
+```
+:::

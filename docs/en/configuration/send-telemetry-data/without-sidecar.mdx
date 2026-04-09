@@ -17,13 +17,13 @@ Instead of injecting a sidecar, you can deploy the OpenTelemetry Collector as a 
 
 1. Deploy the OpenTelemetry Collector instance with the `deployment` mode by running the following command:
 
-   ```bash
+   ```yaml
    kubectl apply -f - <<EOF
    apiVersion: opentelemetry.io/v1beta1
    kind: OpenTelemetryCollector
    metadata:
      name: otel
-     namespace: observability
+     namespace: observability # [!code callout]
    spec:
      mode: deployment
      config:
@@ -49,8 +49,8 @@ Instead of injecting a sidecar, you can deploy the OpenTelemetry Collector as a 
            limit_percentage: 50
            spike_limit_percentage: 30
        exporters:
-         otlp:
-           endpoint: "jaeger-<example>-collector:4317"
+         otlp/traces:
+           endpoint: "<jaeger-instance-name>-collector:4317" # [!code callout]
            tls:
              insecure: true
        service:
@@ -58,13 +58,14 @@ Instead of injecting a sidecar, you can deploy the OpenTelemetry Collector as a 
            traces:
              receivers: [jaeger, otlp, zipkin]
              processors: [memory_limiter, k8sattributes, batch]
-             exporters: [otlp]
+             exporters: [otlp/traces]
    EOF
    ```
 
-   :::note
-   Replace `jaeger-<example>-collector` with the actual service name of your Alauda Build of Jaeger v2 collector. The format is typically `<instance-name>-collector`.
-   :::
+   <Callouts>
+    1. The namespace determines where the Collector resources are created.
+    2. The exporter endpoint must point to the Jaeger collector service. Replace `<jaeger-instance-name>-collector:4317` with the actual service name of your Jaeger deployment.
+   </Callouts>
 
 2. Set the environment variables in the container with your instrumented application to send telemetry data to the Collector:
 
