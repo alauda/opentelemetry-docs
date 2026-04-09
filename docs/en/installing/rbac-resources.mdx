@@ -74,5 +74,5 @@ The following are examples of components that typically require additional RBAC 
     :::
 
     ```bash {name=rbac:restart-operator}
-    kubectl rollout restart deployment/opentelemetry-operator-controller-manager -n opentelemetry-operator2
+    kubectl delete pod -n opentelemetry-operator2 -l app.kubernetes.io/name=opentelemetry-operator
     ```
