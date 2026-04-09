@@ -1,0 +1,69 @@
+---
+weight: 10
+---
+
+# Forwarding Traces to a Jaeger Instance
+
+To send traces to a Jaeger instance, deploy an OpenTelemetry Collector in `deployment` mode and configure a trace pipeline that exports data to the Jaeger collector endpoint.
+
+## Prerequisites
+
+- Alauda build of OpenTelemetry v2 Operator is installed.
+- Alauda Build of Jaeger v2 is installed and deployed.
+- An active ACP CLI (`kubectl`) session by a cluster administrator with the `cluster-admin` role.
+- Enable Automatic RBAC creation by following the instructions in [Procedure](../../installing/rbac-resources.mdx#procedure).
+
+## Procedure
+
+1. Create an `OpenTelemetryCollector` resource:
+
+   ```bash
+   kubectl apply -f - <<EOF
+   apiVersion: opentelemetry.io/v1beta1
+   kind: OpenTelemetryCollector
+   metadata:
+     name: otel
+     namespace: observability
+   spec:
+     mode: deployment
+     config:
+       receivers:
+         jaeger:
+           protocols:
+             grpc: {}
+             thrift_binary: {}
+             thrift_compact: {}
+             thrift_http: {}
+         otlp:
+           protocols:
+             grpc:
+               endpoint: 0.0.0.0:4317
+             http:
+               endpoint: 0.0.0.0:4318
+         zipkin: {}
+       processors:
+         batch: {}
+         k8sattributes: {}
+         memory_limiter:
+           check_interval: 1s
+           limit_percentage: 50
+           spike_limit_percentage: 30
+       exporters:
+         otlp:
+           endpoint: "jaeger-<instance-name>-collector:4317"
+           tls:
+             insecure: true
+       service:
+         pipelines:
+           traces:
+             receivers: [jaeger, otlp, zipkin]
+             processors: [memory_limiter, k8sattributes, batch]
+             exporters: [otlp]
+   EOF
+   ```
+
+   :::note
+   Replace `jaeger-<instance-name>-collector` with the actual service name of your Jaeger collector. The service name typically follows the `<instance-name>-collector` pattern.
+   :::
+
+After the Collector is running, instrumented applications can send trace data to the Collector service endpoint, and the Collector forwards the traces to Jaeger.
