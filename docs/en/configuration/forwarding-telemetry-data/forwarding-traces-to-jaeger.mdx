@@ -13,7 +13,7 @@ To send traces to a Jaeger instance, deploy an OpenTelemetry Collector in `deplo
 - An active ACP CLI (`kubectl`) session by a cluster administrator with the `cluster-admin` role.
 - Enable Automatic RBAC creation by following the instructions in [Procedure](../../installing/rbac-resources.mdx#procedure).
 
-## Procedure
+## Procedure \{#procedure}
 
 1. Create an `OpenTelemetryCollector` resource:
 
@@ -23,9 +23,10 @@ To send traces to a Jaeger instance, deploy an OpenTelemetry Collector in `deplo
    kind: OpenTelemetryCollector
    metadata:
      name: otel
-     namespace: observability # [!code callout]
+     namespace: jaeger-system # [!code callout]
    spec:
      mode: deployment
+     replicas: 1
      config:
        receivers:
          jaeger:
@@ -46,11 +47,11 @@ To send traces to a Jaeger instance, deploy an OpenTelemetry Collector in `deplo
          k8sattributes: {}
          memory_limiter:
            check_interval: 1s
-           limit_percentage: 50
-           spike_limit_percentage: 30
+           limit_percentage: 80
+           spike_limit_percentage: 20
        exporters:
          otlp/traces:
-           endpoint: "<jaeger-instance-name>-collector:4317" # [!code callout]
+           endpoint: "jaeger-collector.jaeger-system.svc.cluster.local:4317" # [!code callout]
            tls:
              insecure: true
        service:
@@ -64,7 +65,7 @@ To send traces to a Jaeger instance, deploy an OpenTelemetry Collector in `deplo
 
    <Callouts>
     1. The namespace determines where the Collector resources are created.
-    2. The exporter endpoint must point to the Jaeger collector service. Replace `<jaeger-instance-name>-collector:4317` with the actual service name of your Jaeger deployment.
+    2. The exporter endpoint must point to the Jaeger collector service. Replace `jaeger-collector.jaeger-system.svc.cluster.local:4317` with the actual service of your Jaeger deployment.
     3. This trace pipeline accepts Jaeger, OTLP, and Zipkin traffic. Configure your instrumented applications to send traces by using one of these receiver protocols.
    </Callouts>
 
@@ -75,25 +76,29 @@ You can deploy `telemetrygen` as a test client:
 
 ```yaml
 kubectl apply -f - <<EOF
-apiVersion: batch/v1
-kind: Job
+apiVersion: v1
+kind: Pod
 metadata:
   name: telemetrygen
-  namespace: observability
+  namespace: jaeger-system
 spec:
-  template:
-    spec:
-      containers:
-      - name: telemetrygen
-        image: ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen:latest
-        args:
+  restartPolicy: Never
+  containers:
+    - name: telemetrygen
+      image: ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen:latest
+      args:
         - traces
-        - --otlp-endpoint=otel-collector.observability.svc.cluster.local:4317
+        - --otlp-endpoint=otel-collector.jaeger-system.svc.cluster.local:4317
         - --otlp-insecure
-        - --duration=60s
+        - --duration=150s
+        - --interval=5s
+        - --child-spans=3
+        - --rate=2
+        - --service=telemetrygen
         - --workers=1
-      restartPolicy: Never
-  backoffLimit: 4
 EOF
+# Wait for telemetrygen to complete, then clean up the test Pod
+kubectl wait -n jaeger-system --for=jsonpath='{.status.phase}'=Succeeded pod/telemetrygen --timeout=10m
+kubectl delete pod -n jaeger-system telemetrygen
 ```
 :::
