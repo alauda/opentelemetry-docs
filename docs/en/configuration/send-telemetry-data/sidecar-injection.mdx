@@ -38,8 +38,8 @@ You can configure the Alauda build of OpenTelemetry v2 to inject the OpenTelemet
          batch: {}
          memory_limiter:
            check_interval: 1s
-           limit_percentage: 50
-           spike_limit_percentage: 30
+           limit_percentage: 80
+           spike_limit_percentage: 20
        exporters:
          otlp:
            endpoint: "jaeger-<example>-collector:4317" # [!code callout]
