@@ -26,7 +26,6 @@ To schedule the OpenTelemetry Collector on infrastructure nodes, configure the `
 2. Create or update the `OpenTelemetryCollector` resource with `nodeSelector` and `tolerations`:
 
     ```yaml
-    kubectl apply -f - <<EOF
     apiVersion: opentelemetry.io/v1beta1
     kind: OpenTelemetryCollector
     metadata:

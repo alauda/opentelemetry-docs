@@ -27,6 +27,7 @@ metadata:
     prometheus: kube-prometheus # [!code callout]
 spec:
   mode: deployment
+  replicas: 1
   observability:
     metrics:
       enableMetrics: true # [!code callout]
@@ -45,6 +46,9 @@ spec:
                 prometheus:
                   host: 0.0.0.0
                   port: 8888
+                  without_scope_info: true
+                  without_type_suffix: true
+                  without_units: true
       pipelines:
         metrics:
           exporters: [prometheus]
@@ -72,6 +76,8 @@ The following example demonstrates a `PodMonitor` that targets the Collector pod
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
+  labels:
+    prometheus: kube-prometheus # [!code callout]
   name: otel-collector
 spec:
   selector:
@@ -95,7 +101,8 @@ spec:
 ```
 
 <Callouts>
-  1. Must match the name of your OpenTelemetry Collector CR, following the pattern `<cr_name>-collector`.
-  2. The port exposing the Collector's internal operational metrics. This port is always named `metrics`.
-  3. The port exposing metrics from the Prometheus exporter configured in the Collector pipeline.
+  1. `prometheus=kube-prometheus` is required in ACP prometheus.
+  2. Must match the name of your OpenTelemetry Collector CR, following the pattern `<cr_name>-collector`.
+  3. The port exposing the Collector's internal operational metrics. This port is always named `metrics`.
+  4. The port exposing metrics from the Prometheus exporter configured in the Collector pipeline.
 </Callouts>

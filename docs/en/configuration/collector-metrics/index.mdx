@@ -39,11 +39,25 @@ spec:
   observability:
     metrics:
       enableMetrics: true # [!code callout]
+  config:
+    service:
+      telemetry:
+        metrics: # [!code callout]
+          readers:
+          - pull:
+              exporter:
+                prometheus:
+                  host: 0.0.0.0
+                  port: 8888
+                  without_scope_info: true
+                  without_type_suffix: true
+                  without_units: true
 ```
 
 <Callouts>
   1. `prometheus=kube-prometheus` is required in ACP prometheus.
   2. Enables the Operator to automatically create `ServiceMonitor` or `PodMonitor` resources that target the Collector's metrics endpoints, including both internal telemetry and Prometheus exporter ports.
+  3. Configures the Collector to expose its internal metrics in Prometheus format on port `8888`.
 </Callouts>
 
 **Verification**

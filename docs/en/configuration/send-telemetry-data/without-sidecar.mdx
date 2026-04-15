@@ -26,6 +26,7 @@ Instead of injecting a sidecar, you can deploy the OpenTelemetry Collector as a 
      namespace: observability # [!code callout]
    spec:
      mode: deployment
+     replicas: 1
      config:
        receivers:
          jaeger:
@@ -46,8 +47,8 @@ Instead of injecting a sidecar, you can deploy the OpenTelemetry Collector as a 
          k8sattributes: {}
          memory_limiter:
            check_interval: 1s
-           limit_percentage: 50
-           spike_limit_percentage: 30
+           limit_percentage: 80
+           spike_limit_percentage: 20
        exporters:
          otlp/traces:
            endpoint: "<jaeger-instance-name>-collector:4317" # [!code callout]

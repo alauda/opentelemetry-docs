@@ -18,7 +18,7 @@ Installing the Alauda Build of OpenTelemetry v2 consists of the following steps:
 
 ## Installing the Alauda Build of OpenTelemetry v2 Operator
 
-### Installing via the web console
+### Installing via the web console \{#installing-via-the-web-console}
 
 **Prerequisites**
 
@@ -40,7 +40,7 @@ Installing the Alauda Build of OpenTelemetry v2 consists of the following steps:
 
 Verify that the Operator installation status is reported as `Succeeded` in the **Installation Info** section.
 
-### Installing via the CLI
+### Installing via the CLI \{#installing-via-the-cli}
 
 **Prerequisites**
 
@@ -251,6 +251,7 @@ The `opentelemetry-collector` namespace used throughout this guide is an example
       namespace: opentelemetry-collector # [!code callout]
     spec:
       mode: deployment # [!code callout]
+      replicas: 1
       config:
         receivers: # [!code callout]
           otlp:
@@ -268,8 +269,8 @@ The `opentelemetry-collector` namespace used throughout this guide is an example
           batch: {}
           memory_limiter:
             check_interval: 1s
-            limit_percentage: 50
-            spike_limit_percentage: 30
+            limit_percentage: 80
+            spike_limit_percentage: 20
         exporters: # [!code callout]
           debug: {}
         service:
@@ -315,6 +316,7 @@ Wait until the pods of the OpenTelemetry Collector are running.
       namespace: opentelemetry-collector
     spec:
       mode: deployment
+      replicas: 1
       config:
         receivers:
           otlp:
@@ -332,8 +334,8 @@ Wait until the pods of the OpenTelemetry Collector are running.
           batch: {}
           memory_limiter:
             check_interval: 1s
-            limit_percentage: 50
-            spike_limit_percentage: 30
+            limit_percentage: 80
+            spike_limit_percentage: 20
         exporters:
           debug: {}
         service:
