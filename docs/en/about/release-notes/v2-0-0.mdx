@@ -1,0 +1,34 @@
+---
+weight: 10000
+---
+
+# Alauda Build of OpenTelemetry v2.0.0
+
+Alauda Build of OpenTelemetry v2.0.0 is the first independently released version of the Alauda Build of OpenTelemetry v2 documentation site. This release is delivered through Alauda Build of OpenTelemetry v2 Operator 0.147.0, aligning with the upstream OpenTelemetry Collector release 0.147.0. It provides a comprehensive solution for deploying and managing the OpenTelemetry Collector, along with streamlined workload instrumentation for cloud-native applications on Alauda Container Platform.
+
+:::note
+Only the features documented on this site are supported. Undocumented features are currently unsupported. If you need assistance with a specific feature, contact Alauda support.
+:::
+
+## Supported Components
+
+This release includes the following OpenTelemetry Collector components:
+
+- **[Receivers](../../configuration/collector/receivers.mdx)** (14): OTLP, Jaeger, Prometheus, Prometheus Remote Write, Zipkin, Kafka, Host Metrics, Kubernetes Objects, Kubelet Stats, Kubernetes Cluster, Kubernetes Events, Filelog, Journald, and OTLP JSON File.
+- **[Processors](../../configuration/collector/processors.mdx)** (14): Batch, Memory Limiter, Resource Detection, Attributes, Resource, Span, Kubernetes Attributes, Filter, Cumulative-to-Delta, Group-by-Attributes, Transform, Tail Sampling, Probabilistic Sampling, and Metric Start Time.
+- **[Exporters](../../configuration/collector/exporters.mdx)** (8): OTLP gRPC, OTLP HTTP, Debug, Prometheus, Prometheus Remote Write, Kafka, Load Balancing, and File.
+- **[Connectors](../../configuration/collector/connectors.mdx)** (4): Count, Routing, Forward, and Spanmetrics.
+- **[Extensions](../../configuration/collector/extensions.mdx)** (8): BearerTokenAuth, OAuth2Client, File Storage, OIDC Auth, Jaeger Remote Sampling, Performance Profiler, Health Check, and zPages.
+
+## Auto-instrumentation Support
+
+Alauda Build of OpenTelemetry v2.0.0 supports [automatic instrumentation](../../configuration/instrumentation/auto-instrumentation.mdx) for six languages and runtimes, injecting the necessary libraries and configuration into application pods without requiring code changes: [Java](../../configuration/instrumentation/java.mdx), [Python](../../configuration/instrumentation/python.mdx), [Node.js](../../configuration/instrumentation/nodejs.mdx), [.NET](../../configuration/instrumentation/dotnet.mdx), [Go](../../configuration/instrumentation/go.mdx), and [Apache HTTP Server](../../configuration/instrumentation/apache-httpd.mdx).
+
+## Deployment Modes
+
+The OpenTelemetry Collector can be deployed in the following modes using the `OpenTelemetryCollector` custom resource:
+
+- **Deployment**: Standard deployment mode for centralized telemetry collection. This is the default mode.
+- **StatefulSet**: Deployment mode for workloads that require persistent state management.
+- **DaemonSet**: Deploys a Collector instance on every node for cluster-wide telemetry collection.
+- **Sidecar**: Injects a Collector container into application pods for pod-level telemetry collection.
