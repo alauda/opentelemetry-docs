@@ -45,10 +45,8 @@ metadata:
   name: my-instrumentation
 spec:
   env:
-    - name: OTEL_SERVICE_NAME
-      value: my-application
     - name: OTEL_RESOURCE_ATTRIBUTES
-      value: deployment.environment=production,service.version=1.0.0
+      value: deployment.environment.name=production
     - name: OTEL_TRACES_EXPORTER
       value: otlp
     - name: OTEL_METRICS_EXPORTER
