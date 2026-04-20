@@ -162,10 +162,8 @@ spec:
   exporter:
     endpoint: http://otel-collector.observability.svc:4318
   env:
-    - name: OTEL_SERVICE_NAME
-      value: my-java-service
     - name: OTEL_RESOURCE_ATTRIBUTES
-      value: deployment.environment=development
+      value: deployment.environment.name=development
   sampler:
     type: parentbased_traceidratio
     argument: "1"
