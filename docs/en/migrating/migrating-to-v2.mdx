@@ -1,0 +1,475 @@
+---
+weight: 10
+---
+
+# Migrating from Alauda Build of OpenTelemetry to Alauda Build of OpenTelemetry v2
+
+This document describes how to migrate an existing `Alauda Build of OpenTelemetry` (built on upstream OpenTelemetry Operator/Collector `0.108.0`) deployment to `Alauda Build of OpenTelemetry v2` (built on upstream `0.147.0`).
+
+The two distributions are delivered through different OLM packages — `opentelemetry-operator` and `opentelemetry-operator2` — but they own the same Custom Resource Definitions (`OpenTelemetryCollector` and `Instrumentation`). OLM does not allow two Operators to own the same CRDs simultaneously, therefore the migration must be performed as **uninstall v1 → install v2**, not as a side-by-side upgrade.
+
+## Overview
+
+### What changes between v1 and v2
+
+| Item | v1 | v2 |
+| :--- | :--- | :--- |
+| OpenTelemetry Operator/Collector version | 0.108.0 | 0.147.0 |
+| OLM package / Subscription name | `opentelemetry-operator` | `opentelemetry-operator2` |
+| Recommended Operator namespace | `opentelemetry-operator` | `opentelemetry-operator2` |
+| Default subscription channel | `alpha` | `stable` |
+| `OpenTelemetryCollector` API version | `opentelemetry.io/v1beta1` | `opentelemetry.io/v1beta1` |
+| `Instrumentation` API version | `opentelemetry.io/v1alpha1` | `opentelemetry.io/v1alpha1` |
+| Java auto-instrumentation image | Provided by Alauda. `Instrumentation.spec.java.image` may be omitted. | Not provided. `Instrumentation.spec.java.image` must be configured by the user (open source image or self-built image). |
+| Collector and Operator namespace | May share the same namespace. | **Must** be in different namespaces. |
+| Compatibility with Alauda Service Mesh | Compatible with Alauda Service Mesh (v1). | Not compatible with Alauda Service Mesh (v1); only compatible with Alauda Service Mesh v2. |
+
+:::warning
+- Because the v1 Operator (`opentelemetry-operator`) and the v2 Operator (`opentelemetry-operator2`) share CRD ownership, you cannot install v2 until v1 is fully uninstalled. The CRDs themselves are preserved across the migration; the v2 Operator adopts and upgrades them on installation.
+- Alauda Build of OpenTelemetry v2 is not compatible with Alauda Service Mesh (v1). If your cluster has Alauda Service Mesh (v1) installed, migrate it to Alauda Service Mesh v2 before starting this migration.
+:::
+
+### Migration outage window
+
+Telemetry collection is interrupted between the time the v1 `OpenTelemetryCollector` is deleted and the time the v2 `OpenTelemetryCollector` becomes ready. Application pods continue to run normally — the OpenTelemetry SDKs buffer and drop telemetry that cannot be exported during the gap. Plan the migration during a low-traffic window and notify telemetry consumers in advance.
+
+### Migration flow at a glance
+
+```
+[Step 1] Delete v1 Instrumentation resources
+    ↓
+[Step 2] Delete v1 OpenTelemetryCollector resources    ← telemetry collection paused
+    ↓
+[Step 3] Uninstall the v1 Operator (Subscription + CSV)
+    ↓
+[Step 4] Install the v2 Operator
+    ↓
+[Step 5] Recreate OpenTelemetryCollector resources
+    ↓
+[Step 6] Recreate Instrumentation resources (set spec.java.image)
+    ↓
+[Step 7] Roll out application pods to apply the new Java agent
+    ↓                                                  ← telemetry collection resumed
+[Step 8] Verify the migration
+```
+
+## Prerequisites
+
+- An active ACP CLI (`kubectl`) session by a cluster administrator with the `cluster-admin` role.
+- Alauda Build of OpenTelemetry (v1) is currently installed in the cluster.
+- Alauda Service Mesh (v1) is **not** installed in the cluster, or has already been migrated to Alauda Service Mesh v2.
+- A Java auto-instrumentation image is available in a registry accessible from the cluster. See [Preparing the Java agent image](#preparing-the-java-agent-image).
+- Telemetry consumers (for example, Jaeger, Prometheus, the platform Tracing console) and application owners are notified about the planned outage window.
+
+## Pre-migration tasks
+
+### Inventory the existing deployment
+
+Before making any changes, capture the current state so that you understand the migration scope and can produce backups for rollback.
+
+1. List the v1 Operator resources:
+
+    ```bash {name=migrate:inventory-operator}
+    kubectl get subscription -A | grep opentelemetry
+    kubectl get csv -A | grep -i opentelemetry
+    ```
+
+2. List the existing OpenTelemetry custom resources:
+
+    ```bash {name=migrate:inventory-cr}
+    kubectl get opentelemetrycollector -A
+    kubectl get instrumentation -A
+    ```
+
+3. List the workloads that currently rely on Java auto-instrumentation:
+
+    ```bash {name=migrate:inventory-java-pods}
+    kubectl get pods -A -o json \
+      | jq -r '
+        .items[]
+        | select(.metadata.annotations["instrumentation.opentelemetry.io/inject-java"])
+        | "\(.metadata.namespace)/\(.metadata.name)"'
+    ```
+
+### Back up v1 resources
+
+Export the v1 resources so that you can rebuild them in v2 (and roll back if needed).
+
+```bash {name=migrate:backup}
+mkdir -p ./otel-v1-backup
+
+kubectl get opentelemetrycollector -A -o yaml > ./otel-v1-backup/collectors.yaml
+kubectl get instrumentation -A -o yaml > ./otel-v1-backup/instrumentations.yaml
+
+kubectl get subscription -n opentelemetry-operator opentelemetry-operator -o yaml \
+  > ./otel-v1-backup/subscription.yaml || true
+kubectl get csv -n opentelemetry-operator -o yaml \
+  > ./otel-v1-backup/csv.yaml || true
+```
+
+:::note
+The backup files are only used as a configuration reference and as a rollback artifact. When you rebuild resources on v2, follow the v2 conventions described in [Installing Alauda Build of OpenTelemetry v2](../installing/install-opentelemetry.mdx) and adjust as needed.
+:::
+
+### Preparing the Java agent image \{#preparing-the-java-agent-image}
+
+In v1, Alauda ships a customized Java auto-instrumentation image with the Operator and the Operator injects it automatically; users normally leave `Instrumentation.spec.java.image` unset. In v2, the Operator no longer ships a Java agent image, and you must set `spec.java.image` explicitly on every `Instrumentation` resource that targets Java workloads. See [Java Auto-instrumentation](../configuration/instrumentation/java.mdx) for details.
+
+| Option | When to use | Example |
+| :--- | :--- | :--- |
+| Upstream community image | Cluster has access to public registries | `ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:2.26.1` |
+| Self-built or mirrored image | Air-gapped clusters, or environments with image supply-chain compliance requirements | `registry.example.com/otel/autoinstrumentation-java:2.26.1` |
+
+:::note
+The OpenTelemetry Java agent has moved from the `1.x` series to the `2.x` series. Some auto-generated metric names and attributes are different from what v1 produced. If your dashboards or alerts depend on specific metric names, review the changes in the upstream Java agent release notes and update them accordingly.
+:::
+
+### Check Collector configuration compatibility
+
+Alauda Build of OpenTelemetry v2 supports the components listed in the [v2.0.0 Release Notes](../about/release-notes/v2-0-0.mdx). Review every `receiver`, `processor`, `exporter`, `connector`, and `extension` referenced in your existing `OpenTelemetryCollector` resources and confirm that:
+
+- Each component is included in the v2 supported component lists.
+- The configuration syntax matches the upstream `0.147.0` schema. Some fields have changed across the upstream release range. For example, the `spec.config.service.telemetry.metrics` configuration shape differs between the two versions.
+
+If you have a staging environment, applying your v1 configuration to a freshly installed v2 Operator there is a good way to surface incompatibilities before the production migration.
+
+## Migration procedure
+
+<Steps>
+
+### Delete the v1 `Instrumentation` resources
+
+1. List the existing `Instrumentation` resources:
+
+    ```bash {name=migrate:list-instrumentation}
+    kubectl get instrumentation -A
+    ```
+
+2. Delete each `Instrumentation` resource. Replace `<namespace>` and `<name>` with the values from the previous step:
+
+    ```bash {name=migrate:delete-instrumentation}
+    kubectl -n <namespace> delete instrumentation <name>
+    ```
+
+    :::tip
+    Deleting `Instrumentation` does not affect application pods that have already been mutated by the webhook — the previously injected init container, environment variables, and `JAVA_TOOL_OPTIONS` remain in the running pods. The deletion only prevents the v1 Operator from injecting them into newly created pods.
+    :::
+
+### Delete the v1 `OpenTelemetryCollector` resources
+
+1. List the existing `OpenTelemetryCollector` resources:
+
+    ```bash {name=migrate:list-collector}
+    kubectl get opentelemetrycollector -A
+    ```
+
+2. Delete each `OpenTelemetryCollector` resource:
+
+    ```bash {name=migrate:delete-collector}
+    kubectl -n <namespace> delete opentelemetrycollector <name>
+    ```
+
+:::warning
+After this step, the OTLP, Jaeger, and Zipkin endpoints exposed by the v1 Collector are gone. Application pods that continue to export telemetry will see export errors until the v2 Collector is created in [Step 5](#recreate-the-opentelemetrycollector-resources).
+:::
+
+### Uninstall the v1 Operator
+
+1. Delete the `Subscription`:
+
+    ```bash {name=migrate:delete-v1-subscription}
+    kubectl delete subscription opentelemetry-operator -n opentelemetry-operator
+    ```
+
+2. Delete the v1 `ClusterServiceVersion` to prevent OLM from re-creating the Operator:
+
+    ```bash {name=migrate:delete-v1-csv}
+    CSV=$(kubectl get csv -n opentelemetry-operator -o name | grep -i opentelemetry-operator)
+    [ -n "$CSV" ] && kubectl -n opentelemetry-operator delete "$CSV"
+    ```
+
+3. Delete the RBAC resources that the v1 deployment created in `cpaas-system` (skip this step if your v1 deployment did not create them, or if you want to reuse the same `ServiceAccount` and `ClusterRoleBinding` for the v2 Collector in the same namespace):
+
+    ```bash {name=migrate:delete-v1-rbac}
+    kubectl -n cpaas-system delete servicemonitor otel-collector-monitoring otel-collector
+    kubectl -n cpaas-system delete sa otel-collector
+    kubectl delete clusterrolebinding otel-collector:cpaas-system:cluster-admin
+    ```
+
+4. Wait until no v1 Operator CSV remains in the cluster. This check is important — if any v1 CSV is still present, OLM rejects the v2 Operator installation in [Step 4](#install-the-v2-operator) due to a CRD owner conflict.
+
+    ```bash {name=migrate:wait-v1-uninstalled}
+    kubectl get csv -A | grep '^opentelemetry-operator '
+    ```
+
+    The expected output is empty.
+
+:::note
+Do not delete the `opentelemetrycollectors.opentelemetry.io` and `instrumentations.opentelemetry.io` CRDs. The v2 Operator adopts and upgrades these CRDs when it is installed. Keeping them also allows you to roll back to v1 from the backup files captured in [Back up v1 resources](#back-up-v1-resources).
+:::
+
+### Install the v2 Operator \{#install-the-v2-operator}
+
+Follow [Installing the Alauda Build of OpenTelemetry v2 Operator](../installing/install-opentelemetry.mdx#installing-the-alauda-build-of-opentelemetry-v2-operator). The condensed CLI flow is:
+
+1. Confirm the available v2 Operator versions:
+
+    ```bash {name=migrate:check-packagemanifest}
+    kubectl get packagemanifest opentelemetry-operator2 -o json | jq -r '
+      .status.channels[]
+      | .name as $channel
+      | .entries[]
+      | [$channel, .name, .version] | @tsv
+    ' | column -t
+    ```
+
+2. Create the Operator namespace:
+
+    ```bash {name=migrate:create-v2-namespace}
+    kubectl get namespace opentelemetry-operator2 || \
+      kubectl create namespace opentelemetry-operator2
+    ```
+
+3. Create the `Subscription`. Replace `startingCSV` with the version returned in step 1.
+
+    ```bash {name=migrate:create-v2-subscription}
+    kubectl apply -f - <<EOF
+    apiVersion: operators.coreos.com/v1alpha1
+    kind: Subscription
+    metadata:
+      annotations:
+        cpaas.io/target-namespaces: ""
+      labels:
+        catalog: platform
+      name: opentelemetry-operator2
+      namespace: opentelemetry-operator2
+    spec:
+      channel: stable
+      installPlanApproval: Manual
+      name: opentelemetry-operator2
+      source: platform
+      sourceNamespace: cpaas-system
+      startingCSV: opentelemetry-operator2.v0.146.0-r0
+    EOF
+    ```
+
+4. Approve the `InstallPlan`:
+
+    ```bash {name=migrate:approve-v2-installplan}
+    kubectl -n opentelemetry-operator2 wait \
+      --for=condition=InstallPlanPending subscription opentelemetry-operator2 --timeout=2m
+
+    PLAN="$(kubectl -n opentelemetry-operator2 get subscription opentelemetry-operator2 \
+      -o jsonpath='{.status.installPlanRef.name}')"
+    kubectl -n opentelemetry-operator2 patch installplan "$PLAN" --type=json \
+      -p='[{"op": "replace", "path": "/spec/approved", "value": true}]'
+    ```
+
+5. Wait for the v2 CSV to reach `Succeeded`:
+
+    ```bash {name=migrate:wait-v2-csv}
+    kubectl wait --for=jsonpath='{.status.phase}'=Succeeded csv \
+      --all -n opentelemetry-operator2 --timeout=3m
+    ```
+
+### Recreate the `OpenTelemetryCollector` resources \{#recreate-the-opentelemetrycollector-resources}
+
+1. Create a dedicated namespace for the Collector. The Collector namespace must be different from the Operator namespace (`opentelemetry-operator2`).
+
+    ```bash {name=migrate:create-collector-namespace}
+    kubectl get namespace opentelemetry-collector || \
+      kubectl create namespace opentelemetry-collector
+    ```
+
+    :::tip
+    Choose the namespace based on your deployment scenario:
+
+    - **Standalone Collector**: a dedicated namespace such as `opentelemetry-collector`.
+    - **Alauda Container Platform Tracing integration**: keep using the same Collector namespace (typically `cpaas-system`) so that downstream services that reference the Collector service do not need to change.
+    - **Alauda Service Mesh v2 integration**: keep the Collector in `istio-system` so the existing `Istio` `meshConfig.extensionProviders[].opentelemetry.service` remains valid.
+    :::
+
+2. Recreate the `OpenTelemetryCollector` resource based on your backup, ensuring that every component used in `spec.config` is supported on v2.
+
+    For the recommended Collector configuration when integrating with `Alauda Distributed Tracing`, see <ExternalSiteLink name="distributed-tracing" href="/installing/installing-distributed-tracing.html#deploying-the-opentelemetry-collector" children="Deploying the OpenTelemetry Collector" /> in the Alauda Distributed Tracing documentation.
+
+    For other scenarios, follow [Deploying the OpenTelemetry Collector](../installing/install-opentelemetry.mdx#deploying-the-opentelemetry-collector) and adapt the example to your environment.
+
+    :::note
+    The v2 Operator automatically creates the `ServiceAccount`, `ClusterRoleBinding`, and `ServiceMonitor` resources required by the Collector when needed. You generally do not have to recreate the v1 RBAC and `ServiceMonitor` resources by hand. If a Collector component requires additional cluster-level RBAC (for example, the `k8sattributes` processor or the `k8sobjects` receiver), follow [Creating the Required RBAC Resources Automatically](../installing/rbac-resources.mdx).
+    :::
+
+3. Wait for the Collector pods to become ready:
+
+    ```bash {name=migrate:wait-collector-ready}
+    kubectl wait --for=condition=Ready pod \
+      -l app.kubernetes.io/managed-by=opentelemetry-operator \
+      -n <collector-namespace> --timeout=3m
+    ```
+
+### Recreate the `Instrumentation` resources
+
+For each `Instrumentation` resource that you backed up, recreate it on v2 with the new `spec.java.image` field set. Other fields can be carried over unchanged so that pod annotations and the `SERVICE_NAME` / `SERVICE_NAMESPACE` environment variables on the application side keep working.
+
+```yaml
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: acp-common-java
+  namespace: cpaas-system
+spec:
+  java:
+    image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:2.26.1 # [!code callout]
+  exporter:
+    endpoint: http://otel-collector.cpaas-system:4317 # [!code callout]
+  env:
+    - name: OTEL_TRACES_EXPORTER
+      value: otlp
+    - name: OTEL_METRICS_EXPORTER
+      value: otlp
+    - name: OTEL_EXPORTER_OTLP_ENDPOINT
+      value: http://otel-collector.cpaas-system:4317
+  sampler:
+    type: parentbased_traceidratio
+    argument: "1"
+```
+
+<Callouts>
+1. **Required on v2.** Set `spec.java.image` to the image you prepared in [Preparing the Java agent image](#preparing-the-java-agent-image). Without this field, no Java agent is injected and Java workloads will not be instrumented.
+2. The exporter endpoint and other environment variables follow the same shape used in v1. Update the value if the Collector namespace or service name has changed.
+</Callouts>
+
+### Roll out the application pods
+
+Application pods that were previously instrumented by the v1 Operator still carry the v1 init container, agent path, and `JAVA_TOOL_OPTIONS`. Because the Collector backing those pods has been replaced, telemetry export from those pods is no longer functional. Roll out the affected workloads so that the v2 mutating webhook injects the new Java agent image and environment variables.
+
+1. List the deployments that opt in to Java auto-instrumentation:
+
+    ```bash {name=migrate:list-java-deployments}
+    kubectl get deploy -A -o json | jq -r '
+      .items[]
+      | select(.spec.template.metadata.annotations["instrumentation.opentelemetry.io/inject-java"])
+      | "\(.metadata.namespace) \(.metadata.name)"'
+    ```
+
+2. Restart each deployment, then wait for the rollout to complete:
+
+    ```bash {name=migrate:restart-deployment}
+    kubectl -n <namespace> rollout restart deployment/<name>
+    kubectl -n <namespace> rollout status deployment/<name>
+    ```
+
+    :::tip
+    For large fleets, restart deployments in waves ordered by criticality so you can pause and validate after each wave.
+    :::
+
+### Verify the migration
+
+1. Verify that only the v2 Operator CSV exists and has reached the `Succeeded` phase:
+
+    ```bash {name=migrate:verify-csv}
+    kubectl get csv -A | grep -i opentelemetry
+    ```
+
+2. Verify the v2 Operator workloads are running:
+
+    ```bash {name=migrate:verify-operator}
+    kubectl -n opentelemetry-operator2 get csv,deploy
+    ```
+
+3. Verify the `OpenTelemetryCollector` resources are healthy and report the v2 version:
+
+    ```bash {name=migrate:verify-collector}
+    kubectl get opentelemetrycollector -A
+    ```
+
+4. Verify the `Instrumentation` resources have `spec.java.image` configured:
+
+    ```bash {name=migrate:verify-instrumentation}
+    kubectl get instrumentation -A \
+      -o jsonpath='{range .items[*]}{.metadata.namespace}/{.metadata.name}{"\t"}{.spec.java.image}{"\n"}{end}'
+    ```
+
+5. Verify that an instrumented application pod uses the new Java agent init container:
+
+    ```bash {name=migrate:verify-pod-init-container}
+    kubectl -n <namespace> get pod <pod-name> \
+      -o jsonpath='{.spec.initContainers[*].image}'
+    ```
+
+    The output must include the image configured in `Instrumentation.spec.java.image`.
+
+6. Verify that OpenTelemetry environment variables are present inside an instrumented pod:
+
+    ```bash {name=migrate:verify-pod-env}
+    kubectl -n <namespace> exec <pod-name> -- env | grep -E '^(JAVA_TOOL_OPTIONS|OTEL_)'
+    ```
+
+7. Send a test request to an instrumented application and confirm that the resulting traces and metrics appear in your tracing backend (for example, Jaeger UI or the platform Tracing console) and Prometheus.
+
+</Steps>
+
+## Rollback
+
+If a problem is discovered during or shortly after the migration, you can roll back to the v1 deployment. The same OLM CRD-ownership constraint applies in reverse: you must fully uninstall the v2 Operator before reinstalling v1.
+
+<Steps>
+
+### Delete the v2 resources
+
+```bash {name=migrate:rollback-delete-v2}
+kubectl delete instrumentation -A --all
+kubectl delete opentelemetrycollector -A --all
+kubectl delete subscription opentelemetry-operator2 -n opentelemetry-operator2
+kubectl delete csv -n opentelemetry-operator2 --all
+```
+
+### Wait for the v2 Operator to be fully removed
+
+```bash {name=migrate:rollback-wait-v2-removed}
+kubectl get csv -A | grep -i opentelemetry-operator2
+```
+
+The expected output is empty.
+
+### Reinstall the v1 Operator
+
+Follow the v1 installation procedure documented in <ExternalSiteLink name="acp" href="/observability/tracing/installation.html#installing-the-opentelemetry-operator" children="Installing the OpenTelemetry Operator" />.
+
+### Recreate the v1 resources from the backup
+
+Recreate the `OpenTelemetryCollector`, `Instrumentation`, `ServiceAccount`, `ClusterRoleBinding`, and `ServiceMonitor` resources from the YAML files captured in [Back up v1 resources](#back-up-v1-resources).
+
+### Roll out the application pods again
+
+Restart the workloads with `kubectl rollout restart` so that the v1 mutating webhook re-injects the v1 Java agent.
+
+</Steps>
+
+## Troubleshooting
+
+| Symptom | Likely cause | Resolution |
+| :--- | :--- | :--- |
+| OLM rejects the v2 Operator installation with a CRD owner conflict | A v1 `ClusterServiceVersion` still exists in the cluster | Wait for `kubectl get csv -A \| grep '^opentelemetry-operator '` to be empty; manually delete any remaining v1 CSVs |
+| The v2 Collector pod is stuck in `CrashLoopBackOff` | The Collector configuration uses a component that v2 does not support, or a field whose schema changed in `0.147.0` | Inspect the Collector pod logs; cross-check every component against the [v2.0.0 Release Notes](../about/release-notes/v2-0-0.mdx) and update or remove unsupported items |
+| Application pods restart but no init container is injected | The mutating webhook is not ready, the `Instrumentation` resource is missing, or the pod annotation references the wrong `Instrumentation` | Check `kubectl get mutatingwebhookconfigurations`, confirm the `Instrumentation` exists in the expected namespace, and verify the value of `instrumentation.opentelemetry.io/inject-java` |
+| Application pods start but no traces are produced | The `OTEL_EXPORTER_OTLP_ENDPOINT` is wrong, the Collector is not ready, or network policies block ports `4317` / `4318` | Test connectivity from inside the pod (for example, `nc -vz <collector-svc> 4317`); review NetworkPolicy resources; check the Collector pod logs |
+
+For deeper troubleshooting of the auto-instrumentation flow, see [Troubleshooting the instrumentation](../troubleshooting/troubleshooting-instrumentation.mdx).
+
+## Scenario-specific notes
+
+### Standalone Collector
+
+Use the dedicated `opentelemetry-collector` namespace as shown in [Installing Alauda Build of OpenTelemetry v2](../installing/install-opentelemetry.mdx). Update the OTLP exporter endpoints used by your applications and any external integrations to point to the new Collector service.
+
+### Alauda Container Platform Tracing integration
+
+- Keep the Collector in `cpaas-system` so that the platform Tracing console, Jaeger, and Prometheus continue to work without endpoint changes.
+- Keep the `Instrumentation` resource named `acp-common-java` in `cpaas-system` so that workload annotations such as `instrumentation.opentelemetry.io/inject-java: cpaas-system/acp-common-java` continue to resolve.
+- The only required change to the `Instrumentation` resource is adding `spec.java.image`.
+
+### Alauda Service Mesh v2 integration
+
+- Keep the Collector in `istio-system`. The existing `Istio` `meshConfig.extensionProviders[].opentelemetry.service` value (typically `otel-collector.istio-system.svc.cluster.local`) and the `Telemetry` resource do not need to be changed.
+- Alauda Service Mesh (v1) is not compatible with Alauda Build of OpenTelemetry v2. Migrate the mesh to Alauda Service Mesh v2 first.
