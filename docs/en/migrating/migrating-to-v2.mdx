@@ -18,15 +18,12 @@ The two distributions are delivered through different OLM packages — `opentele
 | OLM package / Subscription name | `opentelemetry-operator` | `opentelemetry-operator2` |
 | Recommended Operator namespace | `opentelemetry-operator` | `opentelemetry-operator2` |
 | Default subscription channel | `alpha` | `stable` |
-| `OpenTelemetryCollector` API version | `opentelemetry.io/v1beta1` | `opentelemetry.io/v1beta1` |
-| `Instrumentation` API version | `opentelemetry.io/v1alpha1` | `opentelemetry.io/v1alpha1` |
 | Java auto-instrumentation image | Provided by Alauda. `Instrumentation.spec.java.image` may be omitted. | Not provided. `Instrumentation.spec.java.image` must be configured by the user (open source image or self-built image). |
 | Collector and Operator namespace | May share the same namespace. | **Must** be in different namespaces. |
 | Compatibility with Alauda Service Mesh | Compatible with Alauda Service Mesh (v1). | Not compatible with Alauda Service Mesh (v1); only compatible with Alauda Service Mesh v2. |
 
 :::warning
 - Because the v1 Operator (`opentelemetry-operator`) and the v2 Operator (`opentelemetry-operator2`) share CRD ownership, you cannot install v2 until v1 is fully uninstalled. The CRDs themselves are preserved across the migration; the v2 Operator adopts and upgrades them on installation.
-- Alauda Build of OpenTelemetry v2 is not compatible with Alauda Service Mesh (v1). If your cluster has Alauda Service Mesh (v1) installed, migrate it to Alauda Service Mesh v2 before starting this migration.
 :::
 
 ### Migration outage window
