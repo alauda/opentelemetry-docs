@@ -28,7 +28,7 @@ The two distributions are delivered through different OLM packages — `opentele
 
 ### Migration outage window
 
-Telemetry collection is interrupted between the time the v1 `OpenTelemetryCollector` is deleted and the time the v2 `OpenTelemetryCollector` becomes ready. Application pods continue to run normally — the OpenTelemetry SDKs buffer and drop telemetry that cannot be exported during the gap. Plan the migration during a low-traffic window and notify telemetry consumers in advance.
+Telemetry collection is interrupted between the time the v1 `OpenTelemetryCollector` is deleted and the time the v2 `OpenTelemetryCollector` becomes ready. Application pods continue to run normally, but telemetry generated during the gap may be temporarily buffered and can be dropped if it cannot be exported in time. Plan the migration during a low-traffic window and notify telemetry consumers in advance.
 
 ### Migration flow at a glance
 
