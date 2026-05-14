@@ -53,9 +53,9 @@ Telemetry collection is interrupted between the time the v1 `OpenTelemetryCollec
 ## Prerequisites
 
 - An active ACP CLI (`kubectl`) session by a cluster administrator with the `cluster-admin` role.
+- The `jq` command-line JSON processor is installed.
 - Alauda Build of OpenTelemetry (v1) is currently installed in the cluster.
-- Alauda Service Mesh (v1) is **not** installed in the cluster, or has already been migrated to Alauda Service Mesh v2.
-- A Java auto-instrumentation image is available in a registry accessible from the cluster. See [Preparing the Java agent image](#preparing-the-java-agent-image).
+- If any service uses OTel Java auto-instrumentation, a Java auto-instrumentation image is available in a registry accessible from the cluster. See [Preparing the Java agent image](#preparing-the-java-agent-image). Services that do not use OTel Java auto-injection do not need this image.
 - Telemetry consumers (for example, Jaeger, Prometheus, the platform Tracing console) and application owners are notified about the planned outage window.
 
 ## Pre-migration tasks
