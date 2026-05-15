@@ -102,10 +102,19 @@ kubectl get subscription -n opentelemetry-operator opentelemetry-operator -o yam
   > ./otel-v1-backup/subscription.yaml || true
 kubectl get csv -n opentelemetry-operator -o yaml \
   > ./otel-v1-backup/csv.yaml || true
+
+kubectl -n cpaas-system get servicemonitor otel-collector-monitoring -o yaml \
+  > ./otel-v1-backup/servicemonitor-otel-collector-monitoring.yaml || true
+kubectl -n cpaas-system get servicemonitor otel-collector -o yaml \
+  > ./otel-v1-backup/servicemonitor-otel-collector.yaml || true
+kubectl -n cpaas-system get serviceaccount otel-collector -o yaml \
+  > ./otel-v1-backup/serviceaccount-otel-collector.yaml || true
+kubectl get clusterrolebinding otel-collector:cpaas-system:cluster-admin -o yaml \
+  > ./otel-v1-backup/clusterrolebinding-otel-collector.yaml || true
 ```
 
 :::note
-The backup files are only used as a configuration reference and as a rollback artifact. When you rebuild resources on v2, follow the v2 conventions described in [Installing Alauda Build of OpenTelemetry v2](../installing/install-opentelemetry.mdx) and adjust as needed.
+The backup files are only used as a configuration reference and as a rollback artifact. The `cpaas-system` `ServiceMonitor`, `ServiceAccount`, and `ClusterRoleBinding` backups are only needed if you later roll back integrations that depend on those v1 resources. When you rebuild resources on v2, follow the v2 conventions described in [Installing Alauda Build of OpenTelemetry v2](../installing/install-opentelemetry.mdx) and adjust as needed.
 :::
 
 ### Preparing the Java agent image \{#preparing-the-java-agent-image}
@@ -185,9 +194,7 @@ After this step, the OTLP, Jaeger, and Zipkin endpoints exposed by the v1 Collec
     [ -n "$CSV" ] && kubectl -n opentelemetry-operator delete "$CSV"
     ```
 
-3. Delete the RBAC resources that the v1 deployment created in `cpaas-system` (skip this step if your v1 deployment did not create them):
-
-TODO: 将下面删除的资源添加到 #back-up-v1-resources 备份步骤中，用于后续回滚。
+3. Delete the RBAC and monitoring resources that the v1 deployment created in `cpaas-system` (skip this step if your v1 deployment did not create them). These resources are backed up in [Back up v1 resources](#back-up-v1-resources) for rollback.
 
     ```bash {name=migrate:delete-v1-rbac}
     kubectl -n cpaas-system delete servicemonitor otel-collector-monitoring otel-collector
@@ -308,9 +315,7 @@ Follow [Installing the Alauda Build of OpenTelemetry v2 Operator](../installing/
 
 ### Recreate the `Instrumentation` resources
 
-For each `Instrumentation` resource that you backed up, recreate it on v2 with the new `spec.java.image` field set. The exporter endpoint and other environment variables follow the same shape used in v1. Update the value if the Collector namespace or service name has changed.
-
-TODO: 说明 autoinstrumentation-java 2.x 版本，otel 默认导出已经从 grpc 改为 http/protobuf 了，需要将 otel collector 端口从 4317 改为 4318。
+For each `Instrumentation` resource that you backed up, recreate it on v2 with the new `spec.java.image` field set. The exporter endpoint and other environment variables follow the same shape used in v1, but Java auto-instrumentation now uses the `autoinstrumentation-java` 2.x image. In this version, the default OTLP exporter protocol is `http/protobuf`, so endpoints that previously pointed to the Collector gRPC port `4317` must be changed to the Collector HTTP port `4318` unless you explicitly configure `OTEL_EXPORTER_OTLP_PROTOCOL=grpc`. Update the host value as well if the Collector namespace or service name has changed.
 
 ```yaml
 apiVersion: opentelemetry.io/v1alpha1
@@ -329,7 +334,7 @@ spec:
 
 <Callouts>
 1. **Required on v2.** Set `spec.java.image` to the image you prepared in [Preparing the Java agent image](#preparing-the-java-agent-image). Without this field, no Java agent is injected and Java workloads will not be instrumented.
-2. TODO: 补充说明
+2. **Use the OTLP HTTP port for Java agent 2.x defaults.** `autoinstrumentation-java` 2.x exports with `http/protobuf` by default, so the endpoint must use the Collector OTLP HTTP receiver, typically port `4318`. If you intentionally keep the gRPC receiver on port `4317`, add `OTEL_EXPORTER_OTLP_PROTOCOL=grpc` to the Java environment configuration.
 </Callouts>
 
 ### Roll out the application pods
@@ -356,7 +361,18 @@ Application pods that were previously instrumented by the v1 Operator still carr
     For large fleets, restart deployments in waves ordered by criticality so you can pause and validate after each wave.
     :::
 
-TODO: 补充一条说明，使用命令，重启全部注入了 java agent 的 deployment。
+3. To restart all deployments that opt in to Java auto-instrumentation in one command, run:
+
+    ```bash {name=migrate:restart-all-java-deployments}
+    kubectl get deploy -A -o json | jq -r '
+      .items[]
+      | select(.spec.template.metadata.annotations["instrumentation.opentelemetry.io/inject-java"])
+      | [.metadata.namespace, .metadata.name] | @tsv
+    ' | while IFS=$'\t' read -r namespace name; do
+      kubectl -n "$namespace" rollout restart deployment/"$name"
+      kubectl -n "$namespace" rollout status deployment/"$name"
+    done
+    ```
 
 ### Verify the migration
 
@@ -394,12 +410,18 @@ TODO: 补充一条说明，使用命令，重启全部注入了 java agent 的 d
 
     The output must include the image configured in `Instrumentation.spec.java.image`.
 
-6. Verify that OpenTelemetry environment variables are present inside an instrumented pod:
-
-TODO: Pod 可能并没不能执行 env 命令，将其优化为查看 pod 的 yaml。
+6. Verify that OpenTelemetry environment variables are present in the pod spec. This checks the Kubernetes object directly and does not require the application container to support `kubectl exec` or include the `env` command.
 
     ```bash {name=migrate:verify-pod-env}
-    kubectl -n <namespace> exec <pod-name> -- env | grep -E '^(JAVA_TOOL_OPTIONS|OTEL_)'
+    kubectl -n <namespace> get pod <pod-name> -o json | jq -r '
+      .spec.containers[]
+      | .name as $container
+      | (.env // [])
+      | map(select(.name == "JAVA_TOOL_OPTIONS" or (.name | startswith("OTEL_"))))
+      | select(length > 0)
+      | "container=" + $container,
+        (.[] | "\(.name)=\(.value // (.valueFrom | tostring))")
+    '
     ```
 
 7. Send a test request to an instrumented application and confirm that the resulting traces and metrics appear in your tracing backend (for example, Jaeger UI or the platform Tracing console) and Prometheus.
