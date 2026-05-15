@@ -54,6 +54,7 @@ Telemetry collection is interrupted between the time the v1 `OpenTelemetryCollec
 
 - An active ACP CLI (`kubectl`) session by a cluster administrator with the `cluster-admin` role.
 - The `jq` command-line JSON processor is installed.
+- The `yq` command-line YAML processor, version 4, is installed if you use the backup conversion examples in this guide.
 - Alauda Build of OpenTelemetry (v1) is currently installed in the cluster.
 - If any service uses OTel Java auto-instrumentation, a Java auto-instrumentation image is available in a registry accessible from the cluster. See [Preparing the Java agent image](#preparing-the-java-agent-image). Services that do not use OTel Java auto-injection do not need this image.
 - Telemetry consumers (for example, Jaeger, Prometheus, the platform Tracing console) and application owners are notified about the planned outage window.
@@ -299,7 +300,49 @@ Follow [Installing the Alauda Build of OpenTelemetry v2 Operator](../installing/
 
     For the recommended Collector configuration when integrating with `Alauda Distributed Tracing`, see <ExternalSiteLink name="distributed-tracing" href="/installing/installing-distributed-tracing.html#deploying-the-opentelemetry-collector" children="Deploying the OpenTelemetry Collector" /> in the Alauda Distributed Tracing documentation.
 
-    For other scenarios, follow [Deploying the OpenTelemetry Collector](../installing/install-opentelemetry.mdx#deploying-the-opentelemetry-collector) and adapt the example to your environment.
+    For other scenarios, follow [Deploying the OpenTelemetry Collector](../installing/install-opentelemetry.mdx#deploying-the-opentelemetry-collector) and adapt the example to your environment. The following example copies `./otel-v1-backup/collectors.yaml` into a new working directory, removes fields that cannot be reused on create, converts the old `service.telemetry.metrics.address` field to the current `service.telemetry.metrics.readers[].pull.exporter.prometheus` shape described in the [OpenTelemetry Collector internal telemetry documentation](https://opentelemetry.io/docs/collector/internal-telemetry/#prometheus-endpoint-for-internal-metrics), and creates the Collector resources:
+
+    ```bash {name=migrate:create-v2-collector-from-backup}
+    RESTORE_DIR=./otel-v2-restore
+
+    mkdir -p "$RESTORE_DIR"
+    cp ./otel-v1-backup/collectors.yaml "$RESTORE_DIR/collectors.yaml"
+
+    yq eval -i '
+      del(.metadata)
+      | .items[] |= (
+          del(
+            .metadata.annotations."kubectl.kubernetes.io/last-applied-configuration",
+            .metadata.creationTimestamp,
+            .metadata.finalizers,
+            .metadata.generation,
+            .metadata.managedFields,
+            .metadata.resourceVersion,
+            .metadata.uid,
+            .status
+          )
+          | with(.spec.config.service.telemetry.metrics;
+              del(.address)
+              | .readers = [
+                  {
+                    "pull": {
+                      "exporter": {
+                        "prometheus": {
+                          "host": "0.0.0.0",
+                          "port": 8888,
+                          "without_type_suffix": true,
+                          "without_units": true
+                        }
+                      }
+                    }
+                  }
+                ]
+            )
+        )
+    ' "$RESTORE_DIR/collectors.yaml"
+
+    kubectl apply -f "$RESTORE_DIR/collectors.yaml"
+    ```
 
     :::note
     The v2 Operator automatically creates the `ServiceAccount`, `ClusterRoleBinding`, and `ServiceMonitor` resources required by the Collector when needed. You generally do not have to recreate the v1 RBAC and `ServiceMonitor` resources by hand. If a Collector component requires additional cluster-level RBAC (for example, the `k8sattributes` processor or the `k8sobjects` receiver), follow [Creating the Required RBAC Resources Automatically](../installing/rbac-resources.mdx).
@@ -317,25 +360,41 @@ Follow [Installing the Alauda Build of OpenTelemetry v2 Operator](../installing/
 
 For each `Instrumentation` resource that you backed up, recreate it on v2 with the new `spec.java.image` field set. The exporter endpoint and other environment variables follow the same shape used in v1, but Java auto-instrumentation now uses the `autoinstrumentation-java` 2.x image. In this version, the default OTLP exporter protocol is `http/protobuf`, so endpoints that previously pointed to the Collector gRPC port `4317` must be changed to the Collector HTTP port `4318` unless you explicitly configure `OTEL_EXPORTER_OTLP_PROTOCOL=grpc`. Update the host value as well if the Collector namespace or service name has changed.
 
-```yaml
-apiVersion: opentelemetry.io/v1alpha1
-kind: Instrumentation
-metadata:
-  name: acp-common-java
-  namespace: cpaas-system
-spec:
-  java:
-    image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:2.26.1 # [!code callout]
-    env:
-      - name: OTEL_EXPORTER_OTLP_ENDPOINT
-        value: http://otel-collector.cpaas-system:4318  # [!code callout]
-  ...
+Use the same working directory created in the previous step. The following example copies `./otel-v1-backup/instrumentations.yaml`, sets `spec.java.image` from the `JAVA_AUTO_INSTRUMENTATION_IMAGE` variable, changes the backed-up `OTEL_EXPORTER_OTLP_ENDPOINT` value from port `4317` to `4318`, and creates the `Instrumentation` resources:
+
+```bash {name=migrate:create-v2-instrumentation-from-backup}
+RESTORE_DIR=./otel-v2-restore
+JAVA_AUTO_INSTRUMENTATION_IMAGE="ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:2.26.1"
+
+mkdir -p "$RESTORE_DIR"
+cp ./otel-v1-backup/instrumentations.yaml "$RESTORE_DIR/instrumentations.yaml"
+
+JAVA_AUTO_INSTRUMENTATION_IMAGE="$JAVA_AUTO_INSTRUMENTATION_IMAGE" yq eval -i '
+  del(.metadata)
+  | .items[] |= (
+      del(
+        .metadata.annotations."kubectl.kubernetes.io/last-applied-configuration",
+        .metadata.creationTimestamp,
+        .metadata.finalizers,
+        .metadata.generation,
+        .metadata.managedFields,
+        .metadata.resourceVersion,
+        .metadata.uid,
+        .status
+      )
+      | .spec.java.image = strenv(JAVA_AUTO_INSTRUMENTATION_IMAGE)
+      | (.spec.env[] | select(.name == "OTEL_EXPORTER_OTLP_ENDPOINT").value) |= sub(":4317", ":4318")
+      | (select(.spec.java.env) | .spec.java.env[] | select(.name == "OTEL_EXPORTER_OTLP_ENDPOINT").value) |= sub(":4317", ":4318")
+    )
+' "$RESTORE_DIR/instrumentations.yaml"
+
+kubectl apply -f "$RESTORE_DIR/instrumentations.yaml"
 ```
 
-<Callouts>
-1. **Required on v2.** Set `spec.java.image` to the image you prepared in [Preparing the Java agent image](#preparing-the-java-agent-image). Without this field, no Java agent is injected and Java workloads will not be instrumented.
-2. **Use the OTLP HTTP port for Java agent 2.x defaults.** `autoinstrumentation-java` 2.x exports with `http/protobuf` by default, so the endpoint must use the Collector OTLP HTTP receiver, typically port `4318`. If you intentionally keep the gRPC receiver on port `4317`, add `OTEL_EXPORTER_OTLP_PROTOCOL=grpc` to the Java environment configuration.
-</Callouts>
+:::note
+- Set `JAVA_AUTO_INSTRUMENTATION_IMAGE` to the image you prepared in [Preparing the Java agent image](#preparing-the-java-agent-image). The command writes this value to `spec.java.image`. Without this field, no Java agent is injected and Java workloads will not be instrumented.
+- `autoinstrumentation-java` 2.x exports with `http/protobuf` by default, so the endpoint must use the Collector OTLP HTTP receiver, typically port `4318`. If you intentionally keep the gRPC receiver on port `4317`, add `OTEL_EXPORTER_OTLP_PROTOCOL=grpc` to the Java environment configuration.
+:::
 
 ### Roll out the application pods
 
