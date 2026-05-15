@@ -185,7 +185,9 @@ After this step, the OTLP, Jaeger, and Zipkin endpoints exposed by the v1 Collec
     [ -n "$CSV" ] && kubectl -n opentelemetry-operator delete "$CSV"
     ```
 
-3. Delete the RBAC resources that the v1 deployment created in `cpaas-system` (skip this step if your v1 deployment did not create them, or if you want to reuse the same `ServiceAccount` and `ClusterRoleBinding` for the v2 Collector in the same namespace):
+3. Delete the RBAC resources that the v1 deployment created in `cpaas-system` (skip this step if your v1 deployment did not create them):
+
+TODO: 将下面删除的资源添加到 #back-up-v1-resources 备份步骤中，用于后续回滚。
 
     ```bash {name=migrate:delete-v1-rbac}
     kubectl -n cpaas-system delete servicemonitor otel-collector-monitoring otel-collector
@@ -306,7 +308,9 @@ Follow [Installing the Alauda Build of OpenTelemetry v2 Operator](../installing/
 
 ### Recreate the `Instrumentation` resources
 
-For each `Instrumentation` resource that you backed up, recreate it on v2 with the new `spec.java.image` field set. Other fields can be carried over unchanged so that pod annotations and the `SERVICE_NAME` / `SERVICE_NAMESPACE` environment variables on the application side keep working.
+For each `Instrumentation` resource that you backed up, recreate it on v2 with the new `spec.java.image` field set. The exporter endpoint and other environment variables follow the same shape used in v1. Update the value if the Collector namespace or service name has changed.
+
+TODO: 说明 autoinstrumentation-java 2.x 版本，otel 默认导出已经从 grpc 改为 http/protobuf 了，需要将 otel collector 端口从 4317 改为 4318。
 
 ```yaml
 apiVersion: opentelemetry.io/v1alpha1
@@ -317,23 +321,15 @@ metadata:
 spec:
   java:
     image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:2.26.1 # [!code callout]
-  exporter:
-    endpoint: http://otel-collector.cpaas-system:4317 # [!code callout]
-  env:
-    - name: OTEL_TRACES_EXPORTER
-      value: otlp
-    - name: OTEL_METRICS_EXPORTER
-      value: otlp
-    - name: OTEL_EXPORTER_OTLP_ENDPOINT
-      value: http://otel-collector.cpaas-system:4317
-  sampler:
-    type: parentbased_traceidratio
-    argument: "1"
+    env:
+      - name: OTEL_EXPORTER_OTLP_ENDPOINT
+        value: http://otel-collector.cpaas-system:4318  # [!code callout]
+  ...
 ```
 
 <Callouts>
 1. **Required on v2.** Set `spec.java.image` to the image you prepared in [Preparing the Java agent image](#preparing-the-java-agent-image). Without this field, no Java agent is injected and Java workloads will not be instrumented.
-2. The exporter endpoint and other environment variables follow the same shape used in v1. Update the value if the Collector namespace or service name has changed.
+2. TODO: 补充说明
 </Callouts>
 
 ### Roll out the application pods
@@ -359,6 +355,8 @@ Application pods that were previously instrumented by the v1 Operator still carr
     :::tip
     For large fleets, restart deployments in waves ordered by criticality so you can pause and validate after each wave.
     :::
+
+TODO: 补充一条说明，使用命令，重启全部注入了 java agent 的 deployment。
 
 ### Verify the migration
 
@@ -397,6 +395,8 @@ Application pods that were previously instrumented by the v1 Operator still carr
     The output must include the image configured in `Instrumentation.spec.java.image`.
 
 6. Verify that OpenTelemetry environment variables are present inside an instrumented pod:
+
+TODO: Pod 可能并没不能执行 env 命令，将其优化为查看 pod 的 yaml。
 
     ```bash {name=migrate:verify-pod-env}
     kubectl -n <namespace> exec <pod-name> -- env | grep -E '^(JAVA_TOOL_OPTIONS|OTEL_)'
@@ -465,8 +465,3 @@ Use the dedicated `opentelemetry-collector` namespace as shown in [Installing Al
 - Keep the Collector in `cpaas-system` so that the platform Tracing console, Jaeger, and Prometheus continue to work without endpoint changes.
 - Keep the `Instrumentation` resource named `acp-common-java` in `cpaas-system` so that workload annotations such as `instrumentation.opentelemetry.io/inject-java: cpaas-system/acp-common-java` continue to resolve.
 - The only required change to the `Instrumentation` resource is adding `spec.java.image`.
-
-### Alauda Service Mesh v2 integration
-
-- Keep the Collector in `istio-system`. The existing `Istio` `meshConfig.extensionProviders[].opentelemetry.service` value (typically `otel-collector.istio-system.svc.cluster.local`) and the `Telemetry` resource do not need to be changed.
-- Alauda Service Mesh (v1) is not compatible with Alauda Build of OpenTelemetry v2. Migrate the mesh to Alauda Service Mesh v2 first.
