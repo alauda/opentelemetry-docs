@@ -282,11 +282,6 @@ Follow [Installing the Alauda Build of OpenTelemetry v2 Operator](../installing/
 
 1. Create a dedicated namespace for the Collector. The Collector namespace must be different from the Operator namespace (`opentelemetry-operator2`).
 
-    ```bash {name=migrate:create-collector-namespace}
-    kubectl get namespace opentelemetry-collector || \
-      kubectl create namespace opentelemetry-collector
-    ```
-
     :::tip
     Choose the namespace based on your deployment scenario:
 
@@ -294,6 +289,11 @@ Follow [Installing the Alauda Build of OpenTelemetry v2 Operator](../installing/
     - **Alauda Container Platform Tracing integration**: keep using the same Collector namespace (typically `cpaas-system`) so that downstream services that reference the Collector service do not need to change.
     - **Alauda Service Mesh v2 integration**: keep the Collector in `istio-system` so the existing `Istio` `meshConfig.extensionProviders[].opentelemetry.service` remains valid.
     :::
+
+    ```bash {name=migrate:create-collector-namespace}
+    kubectl get namespace opentelemetry-collector || \
+      kubectl create namespace opentelemetry-collector
+    ```
 
 2. Recreate the `OpenTelemetryCollector` resource based on your backup, ensuring that every component used in `spec.config` is supported on v2.
 
