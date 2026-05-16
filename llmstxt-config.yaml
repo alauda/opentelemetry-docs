@@ -1,0 +1,28 @@
+# llms.txt generator configuration for alauda/opentelemetry-docs
+# See: https://llmstxt.org
+
+project_name: "Alauda Build of OpenTelemetry v2 Documentation"
+summary: "Documentation for Alauda Build of OpenTelemetry v2 — a Kubernetes-native distribution of OpenTelemetry that provides unified collection, processing, and forwarding of telemetry data (metrics, traces, logs) with automated workload instrumentation."
+
+include_patterns:
+  - "**/*.md"
+  - "**/*.mdx"
+
+exclude_patterns:
+  - "**/node_modules/**"
+  - "**/.git/**"
+  - "**/.yarn/**"
+  - "**/llms.txt"
+  - "**/CHANGELOG.md"
+  - "**/CONTRIBUTING.md"
+  - "**/.llmstxt-cache/**"
+  - "llmstxt-state.json"
+
+# Group entries by their top-level docs directory
+grouping_base_path: "."
+
+# Files per batch for AI processing
+batch_size: 15
+
+# Maximum words per generated file description
+description_max_words: 150
