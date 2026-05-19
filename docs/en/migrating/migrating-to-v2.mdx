@@ -10,7 +10,7 @@ The two distributions are delivered through different OLM packages — `opentele
 
 ## Overview
 
-### What changes between v1 and v2
+### What changes between v1 and v2 \{#what-changes-between-v1-and-v2}
 
 | Item | v1 | v2 |
 | :--- | :--- | :--- |
@@ -26,7 +26,7 @@ The two distributions are delivered through different OLM packages — `opentele
 - Because the v1 Operator (`opentelemetry-operator`) and the v2 Operator (`opentelemetry-operator2`) share CRD ownership, you cannot install v2 until v1 is fully uninstalled. The CRDs themselves are preserved across the migration; the v2 Operator adopts and upgrades them on installation.
 :::
 
-### Migration outage window
+### Migration outage window \{#migration-outage-window}
 
 Telemetry collection is interrupted between the time the v1 `OpenTelemetryCollector` is deleted and the time the v2 `OpenTelemetryCollector` becomes ready. Application pods continue to run normally, but telemetry generated during the gap may be temporarily buffered and can be dropped if it cannot be exported in time. Plan the migration during a low-traffic window and notify telemetry consumers in advance.
 
@@ -513,7 +513,7 @@ Application pods that were previously instrumented by the v1 Operator still carr
 
 </Steps>
 
-## Rollback
+## Rollback \{#rollback}
 
 If a problem is discovered during or shortly after the migration, you can roll back to the v1 deployment. The same OLM CRD-ownership constraint applies in reverse: you must fully uninstall the v2 Operator before reinstalling v1.
 
