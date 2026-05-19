@@ -313,7 +313,11 @@ Follow [Installing the Alauda Build of OpenTelemetry v2 Operator](../installing/
           level: detailed
     ```
 
-    In newer Collector versions, the `service.telemetry.metrics.address` field is no longer the supported way to expose the internal metrics Prometheus endpoint. Configure the Prometheus endpoint under `service.telemetry.metrics.readers[].pull.exporter.prometheus` instead, as described in the [OpenTelemetry Collector internal telemetry documentation](https://opentelemetry.io/docs/collector/internal-telemetry/#prometheus-endpoint-for-internal-metrics). The following example copies the backup into a new working directory, removes fields that cannot be reused on create, preserves `level: detailed`, replaces `address` with the new `readers` configuration, and creates the Collector resources.
+    In newer Collector versions, the `service.telemetry.metrics.address` field is no longer the supported way to expose the internal metrics Prometheus endpoint. Configure the Prometheus endpoint under `service.telemetry.metrics.readers[].pull.exporter.prometheus` instead, as described in the [OpenTelemetry Collector internal telemetry documentation](https://opentelemetry.io/docs/collector/internal-telemetry/#prometheus-endpoint-for-internal-metrics). The following example copies the backup into a new working directory, removes fields that cannot be reused on create, downgrades `level: detailed` to the default `level: normal`, replaces `address` with the new `readers` configuration, and creates the Collector resources.
+
+    :::tip
+    The default `level: normal` is recommended for production. `level: detailed` enables histogram buckets and per-instance labels for the Collector's own internal metrics, which significantly inflates Prometheus cardinality and storage cost — especially in Gateway-mode deployments with many receiver/exporter instances. `normal` still exposes process resource usage and per-component sent/received/refused/dropped counters, which is sufficient for most SRE alerting and capacity needs. Switch back to `detailed` only temporarily when investigating exporter latency distributions or batch sizing.
+    :::
 
     `jq` does not read YAML directly, so the example uses `kubectl patch --local -p='[]' -o json` only as a local YAML-to-JSON decoder before passing the resources to `jq`.
 
@@ -342,6 +346,7 @@ Follow [Installing the Alauda Build of OpenTelemetry v2 Operator](../installing/
               | .spec.config.service.telemetry.metrics = (
                   (.spec.config.service.telemetry.metrics // {})
                   | del(.address)
+                  | if .level == "detailed" then .level = "normal" else . end
                   | .readers = [
                       {
                         pull: {
