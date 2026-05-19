@@ -443,18 +443,16 @@ Application pods that were previously instrumented by the v1 Operator still carr
       | "\(.metadata.namespace) \(.metadata.name)"'
     ```
 
-2. Restart each deployment, then wait for the rollout to complete:
+2. Restart each instrumented deployment and wait for the rollout to complete. Pick one of the two approaches below based on how cautiously you need to validate.
+
+    **Option A — One deployment at a time.** Run the rollout against each Deployment individually. For large fleets, restart deployments in waves ordered by criticality so you can pause and validate after each wave.
 
     ```bash {name=migrate:restart-deployment}
     kubectl -n <namespace> rollout restart deployment/<name>
     kubectl -n <namespace> rollout status deployment/<name>
     ```
 
-    :::tip
-    For large fleets, restart deployments in waves ordered by criticality so you can pause and validate after each wave.
-    :::
-
-3. To restart all deployments that opt in to Java auto-instrumentation in one command, run:
+    **Option B — All instrumented deployments in one command.** Iterate over every Deployment that opts in to Java auto-instrumentation. This is faster but offers no built-in pause point, so prefer it for small fleets or after you have validated the change on a canary.
 
     ```bash {name=migrate:restart-all-java-deployments}
     kubectl get deploy -A -o json | jq -r '
