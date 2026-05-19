@@ -567,15 +567,3 @@ Restart the workloads with `kubectl rollout restart` so that the v1 mutating web
 | Application pods start but no traces are produced | The `OTEL_EXPORTER_OTLP_ENDPOINT` is wrong, the Collector is not ready, or network policies block ports `4317` / `4318` | Test connectivity from inside the pod (for example, `nc -vz <collector-svc> 4317`); review NetworkPolicy resources; check the Collector pod logs |
 
 For deeper troubleshooting of the auto-instrumentation flow, see [Troubleshooting the instrumentation](../troubleshooting/troubleshooting-instrumentation.mdx).
-
-## Scenario-specific notes
-
-### Standalone Collector
-
-Use the dedicated `opentelemetry-collector` namespace as shown in [Installing Alauda Build of OpenTelemetry v2](../installing/install-opentelemetry.mdx). Update the OTLP exporter endpoints used by your applications and any external integrations to point to the new Collector service.
-
-### Alauda Container Platform Tracing integration
-
-- Keep the Collector in `cpaas-system` so that the platform Tracing console, Jaeger, and Prometheus continue to work without endpoint changes.
-- Keep the `Instrumentation` resource named `acp-common-java` in `cpaas-system` so that workload annotations such as `instrumentation.opentelemetry.io/inject-java: cpaas-system/acp-common-java` continue to resolve.
-- The only required change to the `Instrumentation` resource is adding `spec.java.image`.
