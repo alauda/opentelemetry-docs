@@ -293,6 +293,8 @@ When you rebuild the `OpenTelemetryCollector` manifests from your v1 backup, the
 
 - **Component compatibility**. Every component used in `spec.config` must be supported on v2. For the recommended Collector configuration when integrating with `Alauda Distributed Tracing`, see <ExternalSiteLink name="distributed-tracing" href="/installing/installing-distributed-tracing.html#deploying-the-opentelemetry-collector" children="Deploying the OpenTelemetry Collector" /> in the Alauda Distributed Tracing documentation. For other scenarios, follow [Deploying the OpenTelemetry Collector](../installing/install-opentelemetry.mdx#deploying-the-opentelemetry-collector) and adapt the example to your environment.
 
+- **Feature gates**. v1 Collectors often pass Collector feature gates via `spec.args.feature-gates`. Many of those gates were either stabilized (and therefore no longer toggleable) or removed entirely in newer Collector versions, so reusing the v1 list can prevent the v2 Collector pod from starting. Strip `spec.args.feature-gates` from the backup and reintroduce only the gates that the v2 Collector version in use explicitly documents.
+
 - **Internal metrics Prometheus endpoint**. The `service.telemetry.metrics.address` field is no longer the supported way to expose the internal metrics Prometheus endpoint. Configure it under `service.telemetry.metrics.readers[].pull.exporter.prometheus` instead, as described in the [OpenTelemetry Collector internal telemetry documentation](https://opentelemetry.io/docs/collector/internal-telemetry/#prometheus-endpoint-for-internal-metrics). A typical v1 backup looks like:
 
     ```yaml
@@ -309,7 +311,7 @@ When you rebuild the `OpenTelemetryCollector` manifests from your v1 backup, the
 
 - **Server-managed metadata**. Fields written by the API server (`metadata.creationTimestamp`, `metadata.resourceVersion`, `metadata.uid`, `metadata.generation`, `metadata.managedFields`, `metadata.finalizers`, the `kubectl.kubernetes.io/last-applied-configuration` annotation, and `status`) cannot be reused on create and must be stripped from the backup.
 
-- **RBAC and ServiceMonitor**. The v2 Operator automatically creates the `ServiceAccount`, `ClusterRoleBinding`, and `ServiceMonitor` resources required by the Collector when needed. Drop the v1 `spec.serviceAccount` field from the backup so the Operator can provision a fresh ServiceAccount with the correct permissions; you generally do not have to recreate the v1 RBAC and `ServiceMonitor` resources by hand. If a Collector component requires additional cluster-level RBAC (for example, the `k8sattributes` processor or the `k8sobjects` receiver), follow [Creating the Required RBAC Resources Automatically](../installing/rbac-resources.mdx).
+- **Operator-managed RBAC and Prometheus scraping**. The v2 Operator automatically creates the `ServiceAccount` and `ClusterRoleBinding` resources required by the Collector. Drop the v1 `spec.serviceAccount` field from the backup so the Operator can provision a fresh ServiceAccount with the correct permissions; you generally do not have to recreate the v1 RBAC resources by hand. To have the Operator also create a `ServiceMonitor` for the internal Prometheus endpoint, set `spec.observability.metrics.enableMetrics: true` and add a discovery label (such as `prometheus: kube-prometheus`) to `metadata.labels` so that your Prometheus Operator instance picks the resource up. If a Collector component requires additional cluster-level RBAC (for example, the `k8sattributes` processor or the `k8sobjects` receiver), follow [Creating the Required RBAC Resources Automatically](../installing/rbac-resources.mdx).
 
 #### Migration procedure \{#collector-migration-procedure}
 
@@ -320,7 +322,7 @@ When you rebuild the `OpenTelemetryCollector` manifests from your v1 backup, the
       kubectl create namespace opentelemetry-collector
     ```
 
-2. Recreate the `OpenTelemetryCollector` resource from the backup. The following example copies `./otel-v1-backup/collectors.yaml` into a new working directory, strips server-managed metadata, removes the v1 `spec.serviceAccount` field so the v2 Operator can provision its own ServiceAccount, downgrades `level: detailed` to the default `level: normal`, replaces the deprecated `address` field with the new `readers` configuration, and applies the result.
+2. Recreate the `OpenTelemetryCollector` resource from the backup. The following example copies `./otel-v1-backup/collectors.yaml` into a new working directory, strips server-managed metadata, removes the v1 `spec.serviceAccount` and `spec.args.feature-gates` fields, downgrades `level: detailed` to the default `level: normal`, replaces the deprecated `address` field with the new `readers` configuration, enables Operator-managed metrics scraping by setting `spec.observability.metrics.enableMetrics: true` and adding the `prometheus: kube-prometheus` label so that the kube-prometheus stack picks up the auto-created `ServiceMonitor`, and applies the result.
 
     `jq` does not read YAML directly, so the example uses `kubectl patch --local -p='[]' -o json` only as a local YAML-to-JSON decoder before passing the resources to `jq`.
 
@@ -345,7 +347,8 @@ When you rebuild the `OpenTelemetryCollector` manifests from your v1 backup, the
                 .metadata.resourceVersion,
                 .metadata.uid,
                 .status,
-                .spec.serviceAccount
+                .spec.serviceAccount,
+                .spec.args."feature-gates"
               )
               | .spec.config.service.telemetry.metrics = (
                   (.spec.config.service.telemetry.metrics // {})
@@ -366,6 +369,8 @@ When you rebuild the `OpenTelemetryCollector` manifests from your v1 backup, the
                       }
                     ]
                 )
+              | .spec.observability.metrics.enableMetrics = true
+              | .metadata.labels.prometheus = "kube-prometheus"
             )
           }
         ' > "$RESTORE_DIR/collectors.json"
