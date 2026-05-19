@@ -16,7 +16,7 @@ Installing the Alauda Build of OpenTelemetry v2 consists of the following steps:
 - Do not deploy the OpenTelemetry Collector in the same namespace as the Operator. Create a separate namespace for the Collector instance.
 :::
 
-## Installing the Alauda Build of OpenTelemetry v2 Operator
+## Installing the Alauda Build of OpenTelemetry v2 Operator \{#installing-the-alauda-build-of-opentelemetry-v2-operator}
 
 ### Installing via the web console \{#installing-via-the-web-console}
 
@@ -199,7 +199,7 @@ opentelemetry-operator2.v0.146.0-r0     Alauda Build of OpenTelemetry v2        
 * **REPLACES**: CSV replaced during upgrade
 * **PHASE**: Installation status (`Succeeded` indicates success)
 
-## Deploying the OpenTelemetry Collector
+## Deploying the OpenTelemetry Collector \{#deploying-the-opentelemetry-collector}
 
 After successfully installing the Alauda Build of OpenTelemetry v2 Operator, deploy the OpenTelemetry Collector by creating an `OpenTelemetryCollector` custom resource.
 
@@ -371,3 +371,7 @@ kubectl get pods -n opentelemetry-collector
 NAME                              READY   STATUS    RESTARTS   AGE
 otel-collector-7877b4cdcf-bj7br   1/1     Running   0          69s
 ```
+
+## Uninstalling
+
+To remove the Alauda Distributed Tracing components from your cluster, follow [Uninstalling Alauda Build of OpenTelemetry v2](../uninstalling/uninstalling-opentelemetry.mdx).
