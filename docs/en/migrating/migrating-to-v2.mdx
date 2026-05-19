@@ -187,14 +187,7 @@ After this step, the OTLP, Jaeger, and Zipkin endpoints exposed by the v1 Collec
     kubectl delete subscription opentelemetry-operator -n opentelemetry-operator
     ```
 
-2. Delete the v1 `ClusterServiceVersion` to prevent OLM from re-creating the Operator:
-
-    ```bash {name=migrate:delete-v1-csv}
-    CSV=$(kubectl get csv -n opentelemetry-operator -o name | grep -i opentelemetry-operator)
-    [ -n "$CSV" ] && kubectl -n opentelemetry-operator delete "$CSV"
-    ```
-
-3. Delete the RBAC and monitoring resources that the v1 deployment created in `cpaas-system` (skip this step if your v1 deployment did not create them). These resources are backed up in [Back up v1 resources](#back-up-v1-resources) for rollback.
+2. Delete the RBAC and monitoring resources that the v1 deployment created in `cpaas-system` (skip this step if your v1 deployment did not create them). These resources are backed up in [Back up v1 resources](#back-up-v1-resources) for rollback.
 
     ```bash {name=migrate:delete-v1-rbac}
     kubectl -n cpaas-system delete servicemonitor otel-collector-monitoring otel-collector
@@ -202,7 +195,7 @@ After this step, the OTLP, Jaeger, and Zipkin endpoints exposed by the v1 Collec
     kubectl delete clusterrolebinding otel-collector:cpaas-system:cluster-admin
     ```
 
-4. Wait until no v1 Operator CSV remains in the cluster. This check is important — if any v1 CSV is still present, OLM rejects the v2 Operator installation in [Step 4](#install-the-v2-operator) due to a CRD owner conflict.
+3. Wait until no v1 Operator CSV remains in the cluster. This check is important — if any v1 CSV is still present, OLM rejects the v2 Operator installation in [Step 4](#install-the-v2-operator) due to a CRD owner conflict.
 
     ```bash {name=migrate:wait-v1-uninstalled}
     kubectl get csv -A | grep '^opentelemetry-operator '
