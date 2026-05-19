@@ -54,7 +54,6 @@ Telemetry collection is interrupted between the time the v1 `OpenTelemetryCollec
 
 - An active ACP CLI (`kubectl`) session by a cluster administrator with the `cluster-admin` role.
 - The `jq` command-line JSON processor is installed.
-- The `yq` command-line YAML processor, version 4, is installed if you use the backup conversion examples in this guide.
 - Alauda Build of OpenTelemetry (v1) is currently installed in the cluster.
 - If any service uses OTel Java auto-instrumentation, a Java auto-instrumentation image is available in a registry accessible from the cluster. See [Preparing the Java agent image](#preparing-the-java-agent-image). Services that do not use OTel Java auto-injection do not need this image.
 - Telemetry consumers (for example, Jaeger, Prometheus, the platform Tracing console) and application owners are notified about the planned outage window.
@@ -300,7 +299,23 @@ Follow [Installing the Alauda Build of OpenTelemetry v2 Operator](../installing/
 
     For the recommended Collector configuration when integrating with `Alauda Distributed Tracing`, see <ExternalSiteLink name="distributed-tracing" href="/installing/installing-distributed-tracing.html#deploying-the-opentelemetry-collector" children="Deploying the OpenTelemetry Collector" /> in the Alauda Distributed Tracing documentation.
 
-    For other scenarios, follow [Deploying the OpenTelemetry Collector](../installing/install-opentelemetry.mdx#deploying-the-opentelemetry-collector) and adapt the example to your environment. The following example copies `./otel-v1-backup/collectors.yaml` into a new working directory, removes fields that cannot be reused on create, converts the old `service.telemetry.metrics.address` field to the current `service.telemetry.metrics.readers[].pull.exporter.prometheus` shape described in the [OpenTelemetry Collector internal telemetry documentation](https://opentelemetry.io/docs/collector/internal-telemetry/#prometheus-endpoint-for-internal-metrics), and creates the Collector resources:
+    For other scenarios, follow [Deploying the OpenTelemetry Collector](../installing/install-opentelemetry.mdx#deploying-the-opentelemetry-collector) and adapt the example to your environment.
+
+    The `./otel-v1-backup/collectors.yaml` backup in this example contains the v1 Collector internal metrics configuration:
+
+    ```yaml
+    service:
+      telemetry:
+        logs:
+          level: info
+        metrics:
+          address: 0.0.0.0:8888
+          level: detailed
+    ```
+
+    In newer Collector versions, the `service.telemetry.metrics.address` field is no longer the supported way to expose the internal metrics Prometheus endpoint. Configure the Prometheus endpoint under `service.telemetry.metrics.readers[].pull.exporter.prometheus` instead, as described in the [OpenTelemetry Collector internal telemetry documentation](https://opentelemetry.io/docs/collector/internal-telemetry/#prometheus-endpoint-for-internal-metrics). The following example copies the backup into a new working directory, removes fields that cannot be reused on create, preserves `level: detailed`, replaces `address` with the new `readers` configuration, and creates the Collector resources.
+
+    `jq` does not read YAML directly, so the example uses `kubectl patch --local -p='[]' -o json` only as a local YAML-to-JSON decoder before passing the resources to `jq`.
 
     ```bash {name=migrate:create-v2-collector-from-backup}
     RESTORE_DIR=./otel-v2-restore
@@ -308,40 +323,45 @@ Follow [Installing the Alauda Build of OpenTelemetry v2 Operator](../installing/
     mkdir -p "$RESTORE_DIR"
     cp ./otel-v1-backup/collectors.yaml "$RESTORE_DIR/collectors.yaml"
 
-    yq eval -i '
-      del(.metadata)
-      | .items[] |= (
-          del(
-            .metadata.annotations."kubectl.kubernetes.io/last-applied-configuration",
-            .metadata.creationTimestamp,
-            .metadata.finalizers,
-            .metadata.generation,
-            .metadata.managedFields,
-            .metadata.resourceVersion,
-            .metadata.uid,
-            .status
-          )
-          | with(.spec.config.service.telemetry.metrics;
-              del(.address)
-              | .readers = [
-                  {
-                    "pull": {
-                      "exporter": {
-                        "prometheus": {
-                          "host": "0.0.0.0",
-                          "port": 8888,
-                          "without_type_suffix": true,
-                          "without_units": true
+    kubectl patch --local -f "$RESTORE_DIR/collectors.yaml" --type=json -p='[]' -o json \
+      | jq -s '
+          {
+            apiVersion: "v1",
+            kind: "List",
+            items: map(
+              del(
+                .metadata.annotations."kubectl.kubernetes.io/last-applied-configuration",
+                .metadata.creationTimestamp,
+                .metadata.finalizers,
+                .metadata.generation,
+                .metadata.managedFields,
+                .metadata.resourceVersion,
+                .metadata.uid,
+                .status
+              )
+              | .spec.config.service.telemetry.metrics = (
+                  (.spec.config.service.telemetry.metrics // {})
+                  | del(.address)
+                  | .readers = [
+                      {
+                        pull: {
+                          exporter: {
+                            prometheus: {
+                              host: "0.0.0.0",
+                              port: 8888,
+                              without_type_suffix: true,
+                              without_units: true
+                            }
+                          }
                         }
                       }
-                    }
-                  }
-                ]
+                    ]
+                )
             )
-        )
-    ' "$RESTORE_DIR/collectors.yaml"
+          }
+        ' > "$RESTORE_DIR/collectors.json"
 
-    kubectl apply -f "$RESTORE_DIR/collectors.yaml"
+    kubectl apply -f "$RESTORE_DIR/collectors.json"
     ```
 
     :::note
@@ -369,26 +389,30 @@ JAVA_AUTO_INSTRUMENTATION_IMAGE="ghcr.io/open-telemetry/opentelemetry-operator/a
 mkdir -p "$RESTORE_DIR"
 cp ./otel-v1-backup/instrumentations.yaml "$RESTORE_DIR/instrumentations.yaml"
 
-JAVA_AUTO_INSTRUMENTATION_IMAGE="$JAVA_AUTO_INSTRUMENTATION_IMAGE" yq eval -i '
-  del(.metadata)
-  | .items[] |= (
-      del(
-        .metadata.annotations."kubectl.kubernetes.io/last-applied-configuration",
-        .metadata.creationTimestamp,
-        .metadata.finalizers,
-        .metadata.generation,
-        .metadata.managedFields,
-        .metadata.resourceVersion,
-        .metadata.uid,
-        .status
-      )
-      | .spec.java.image = strenv(JAVA_AUTO_INSTRUMENTATION_IMAGE)
-      | (.spec.env[] | select(.name == "OTEL_EXPORTER_OTLP_ENDPOINT").value) |= sub(":4317", ":4318")
-      | (select(.spec.java.env) | .spec.java.env[] | select(.name == "OTEL_EXPORTER_OTLP_ENDPOINT").value) |= sub(":4317", ":4318")
-    )
-' "$RESTORE_DIR/instrumentations.yaml"
+kubectl patch --local -f "$RESTORE_DIR/instrumentations.yaml" --type=json -p='[]' -o json \
+  | jq -s --arg javaAutoInstrumentationImage "$JAVA_AUTO_INSTRUMENTATION_IMAGE" '
+      {
+        apiVersion: "v1",
+        kind: "List",
+        items: map(
+          del(
+            .metadata.annotations."kubectl.kubernetes.io/last-applied-configuration",
+            .metadata.creationTimestamp,
+            .metadata.finalizers,
+            .metadata.generation,
+            .metadata.managedFields,
+            .metadata.resourceVersion,
+            .metadata.uid,
+            .status
+          )
+          | .spec.java.image = $javaAutoInstrumentationImage
+          | (.spec.env[]? | select(.name == "OTEL_EXPORTER_OTLP_ENDPOINT").value) |= sub(":4317"; ":4318")
+          | (.spec.java.env[]? | select(.name == "OTEL_EXPORTER_OTLP_ENDPOINT").value) |= sub(":4317"; ":4318")
+        )
+      }
+    ' > "$RESTORE_DIR/instrumentations.json"
 
-kubectl apply -f "$RESTORE_DIR/instrumentations.yaml"
+kubectl apply -f "$RESTORE_DIR/instrumentations.json"
 ```
 
 :::note
