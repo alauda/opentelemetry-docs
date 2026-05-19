@@ -308,14 +308,7 @@ When you rebuild the `OpenTelemetryCollector` manifests from your v1 backup, the
 
 #### Migration procedure \{#collector-migration-procedure}
 
-1. Create a dedicated namespace for the Collector. Substitute the namespace name with the one chosen for your deployment scenario:
-
-    ```bash {name=migrate:create-collector-namespace}
-    kubectl get namespace opentelemetry-collector || \
-      kubectl create namespace opentelemetry-collector
-    ```
-
-2. Recreate the `OpenTelemetryCollector` resource from the backup. The following example copies `./otel-v1-backup/collectors.yaml` into a new working directory, strips server-managed metadata, removes the v1 `spec.serviceAccount` and `spec.args.feature-gates` fields, downgrades `level: detailed` to the default `level: normal`, replaces the deprecated `address` field with the new `readers` configuration, enables Operator-managed metrics scraping by setting `spec.observability.metrics.enableMetrics: true` and adding the `prometheus: kube-prometheus` label so that the kube-prometheus stack picks up the auto-created `ServiceMonitor`, and applies the result.
+1. Recreate the `OpenTelemetryCollector` resource from the backup. The following example copies `./otel-v1-backup/collectors.yaml` into a new working directory, strips server-managed metadata, removes the v1 `spec.serviceAccount` and `spec.args.feature-gates` fields, downgrades `level: detailed` to the default `level: normal`, replaces the deprecated `address` field with the new `readers` configuration, enables Operator-managed metrics scraping by setting `spec.observability.metrics.enableMetrics: true` and adding the `prometheus: kube-prometheus` label so that the kube-prometheus stack picks up the auto-created `ServiceMonitor`, and applies the result.
 
     `jq` does not read YAML directly, so the example uses `kubectl patch --local -p='[]' -o json` only as a local YAML-to-JSON decoder before passing the resources to `jq`.
 
@@ -372,7 +365,7 @@ When you rebuild the `OpenTelemetryCollector` manifests from your v1 backup, the
     kubectl apply -f "$RESTORE_DIR/collectors.json"
     ```
 
-3. Wait for the Collector pods to become ready:
+2. Wait for the Collector pods to become ready:
 
     ```bash {name=migrate:wait-collector-ready}
     kubectl wait --for=condition=Ready pod \
