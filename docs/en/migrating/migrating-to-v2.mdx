@@ -281,28 +281,19 @@ Follow [Installing the Alauda Build of OpenTelemetry v2 Operator](../installing/
 
 ### Recreate the `OpenTelemetryCollector` resources \{#recreate-the-opentelemetrycollector-resources}
 
-1. Create a dedicated namespace for the Collector. The Collector namespace must be different from the Operator namespace (`opentelemetry-operator2`).
+#### What this migration changes \{#collector-migration-overview}
 
-    :::tip
-    Choose the namespace based on your deployment scenario:
+When you rebuild the `OpenTelemetryCollector` manifests from your v1 backup, the following aspects must be adjusted before they can be applied on v2.
+
+- **Collector namespace**. The Collector namespace must be different from the Operator namespace (`opentelemetry-operator2`). Choose the namespace based on your deployment scenario:
 
     - **Standalone Collector**: a dedicated namespace such as `opentelemetry-collector`.
     - **Alauda Container Platform Tracing integration**: keep using the same Collector namespace (typically `cpaas-system`) so that downstream services that reference the Collector service do not need to change.
     - **Alauda Service Mesh v2 integration**: keep the Collector in `istio-system` so the existing `Istio` `meshConfig.extensionProviders[].opentelemetry.service` remains valid.
-    :::
 
-    ```bash {name=migrate:create-collector-namespace}
-    kubectl get namespace opentelemetry-collector || \
-      kubectl create namespace opentelemetry-collector
-    ```
+- **Component compatibility**. Every component used in `spec.config` must be supported on v2. For the recommended Collector configuration when integrating with `Alauda Distributed Tracing`, see <ExternalSiteLink name="distributed-tracing" href="/installing/installing-distributed-tracing.html#deploying-the-opentelemetry-collector" children="Deploying the OpenTelemetry Collector" /> in the Alauda Distributed Tracing documentation. For other scenarios, follow [Deploying the OpenTelemetry Collector](../installing/install-opentelemetry.mdx#deploying-the-opentelemetry-collector) and adapt the example to your environment.
 
-2. Recreate the `OpenTelemetryCollector` resource based on your backup, ensuring that every component used in `spec.config` is supported on v2.
-
-    For the recommended Collector configuration when integrating with `Alauda Distributed Tracing`, see <ExternalSiteLink name="distributed-tracing" href="/installing/installing-distributed-tracing.html#deploying-the-opentelemetry-collector" children="Deploying the OpenTelemetry Collector" /> in the Alauda Distributed Tracing documentation.
-
-    For other scenarios, follow [Deploying the OpenTelemetry Collector](../installing/install-opentelemetry.mdx#deploying-the-opentelemetry-collector) and adapt the example to your environment.
-
-    The `./otel-v1-backup/collectors.yaml` backup in this example contains the v1 Collector internal metrics configuration:
+- **Internal metrics Prometheus endpoint**. The `service.telemetry.metrics.address` field is no longer the supported way to expose the internal metrics Prometheus endpoint. Configure it under `service.telemetry.metrics.readers[].pull.exporter.prometheus` instead, as described in the [OpenTelemetry Collector internal telemetry documentation](https://opentelemetry.io/docs/collector/internal-telemetry/#prometheus-endpoint-for-internal-metrics). A typical v1 backup looks like:
 
     ```yaml
     service:
@@ -314,11 +305,22 @@ Follow [Installing the Alauda Build of OpenTelemetry v2 Operator](../installing/
           level: detailed
     ```
 
-    In newer Collector versions, the `service.telemetry.metrics.address` field is no longer the supported way to expose the internal metrics Prometheus endpoint. Configure the Prometheus endpoint under `service.telemetry.metrics.readers[].pull.exporter.prometheus` instead, as described in the [OpenTelemetry Collector internal telemetry documentation](https://opentelemetry.io/docs/collector/internal-telemetry/#prometheus-endpoint-for-internal-metrics). The following example copies the backup into a new working directory, removes fields that cannot be reused on create, downgrades `level: detailed` to the default `level: normal`, replaces `address` with the new `readers` configuration, and creates the Collector resources.
+- **Internal metrics verbosity**. `level: detailed` enables histogram buckets and per-instance labels for the Collector's own internal metrics, which significantly inflates Prometheus cardinality and storage cost — especially in Gateway-mode deployments with many receiver/exporter instances. The default `level: normal` is recommended for production: it still exposes process resource usage and per-component sent/received/refused/dropped counters, which is sufficient for most SRE alerting and capacity needs. Switch back to `detailed` only temporarily when investigating exporter latency distributions or batch sizing.
 
-    :::tip
-    The default `level: normal` is recommended for production. `level: detailed` enables histogram buckets and per-instance labels for the Collector's own internal metrics, which significantly inflates Prometheus cardinality and storage cost — especially in Gateway-mode deployments with many receiver/exporter instances. `normal` still exposes process resource usage and per-component sent/received/refused/dropped counters, which is sufficient for most SRE alerting and capacity needs. Switch back to `detailed` only temporarily when investigating exporter latency distributions or batch sizing.
-    :::
+- **Server-managed metadata**. Fields written by the API server (`metadata.creationTimestamp`, `metadata.resourceVersion`, `metadata.uid`, `metadata.generation`, `metadata.managedFields`, `metadata.finalizers`, the `kubectl.kubernetes.io/last-applied-configuration` annotation, and `status`) cannot be reused on create and must be stripped from the backup.
+
+- **RBAC and ServiceMonitor**. The v2 Operator automatically creates the `ServiceAccount`, `ClusterRoleBinding`, and `ServiceMonitor` resources required by the Collector when needed. Drop the v1 `spec.serviceAccount` field from the backup so the Operator can provision a fresh ServiceAccount with the correct permissions; you generally do not have to recreate the v1 RBAC and `ServiceMonitor` resources by hand. If a Collector component requires additional cluster-level RBAC (for example, the `k8sattributes` processor or the `k8sobjects` receiver), follow [Creating the Required RBAC Resources Automatically](../installing/rbac-resources.mdx).
+
+#### Migration procedure \{#collector-migration-procedure}
+
+1. Create a dedicated namespace for the Collector. Substitute the namespace name with the one chosen for your deployment scenario:
+
+    ```bash {name=migrate:create-collector-namespace}
+    kubectl get namespace opentelemetry-collector || \
+      kubectl create namespace opentelemetry-collector
+    ```
+
+2. Recreate the `OpenTelemetryCollector` resource from the backup. The following example copies `./otel-v1-backup/collectors.yaml` into a new working directory, strips server-managed metadata, removes the v1 `spec.serviceAccount` field so the v2 Operator can provision its own ServiceAccount, downgrades `level: detailed` to the default `level: normal`, replaces the deprecated `address` field with the new `readers` configuration, and applies the result.
 
     `jq` does not read YAML directly, so the example uses `kubectl patch --local -p='[]' -o json` only as a local YAML-to-JSON decoder before passing the resources to `jq`.
 
@@ -342,7 +344,8 @@ Follow [Installing the Alauda Build of OpenTelemetry v2 Operator](../installing/
                 .metadata.managedFields,
                 .metadata.resourceVersion,
                 .metadata.uid,
-                .status
+                .status,
+                .spec.serviceAccount
               )
               | .spec.config.service.telemetry.metrics = (
                   (.spec.config.service.telemetry.metrics // {})
@@ -369,10 +372,6 @@ Follow [Installing the Alauda Build of OpenTelemetry v2 Operator](../installing/
 
     kubectl apply -f "$RESTORE_DIR/collectors.json"
     ```
-
-    :::note
-    The v2 Operator automatically creates the `ServiceAccount`, `ClusterRoleBinding`, and `ServiceMonitor` resources required by the Collector when needed. You generally do not have to recreate the v1 RBAC and `ServiceMonitor` resources by hand. If a Collector component requires additional cluster-level RBAC (for example, the `k8sattributes` processor or the `k8sobjects` receiver), follow [Creating the Required RBAC Resources Automatically](../installing/rbac-resources.mdx).
-    :::
 
 3. Wait for the Collector pods to become ready:
 
