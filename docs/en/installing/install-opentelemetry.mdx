@@ -67,7 +67,7 @@ Verify that the Operator installation status is reported as `Succeeded` in the *
 
     ```bash {name=install-otel:check-packagemanifest-versions-output}
     CHANNEL  NAME                                    VERSION
-    stable   opentelemetry-operator2.v0.146.0-r0     0.146.0-r0
+    stable   opentelemetry-operator2.v0.147.0-r0     0.147.0-r0
     ```
 
     **Fields**:
@@ -115,7 +115,7 @@ Verify that the Operator installation status is reported as `Succeeded` in the *
       name: opentelemetry-operator2
       source: platform
       sourceNamespace: cpaas-system
-      startingCSV: opentelemetry-operator2.v0.146.0-r0
+      startingCSV: opentelemetry-operator2.v0.147.0-r0
     EOF
     ```
 
@@ -160,7 +160,7 @@ Verify that the Operator installation status is reported as `Succeeded` in the *
 
     ```bash {name=install-otel:get-installplan-output}
     NAME            CSV                                     APPROVAL   APPROVED
-    install-abc12   opentelemetry-operator2.v0.146.0-r0     Manual     false
+    install-abc12   opentelemetry-operator2.v0.147.0-r0     Manual     false
     ```
 
     **Approve manually**
@@ -188,7 +188,7 @@ kubectl -n opentelemetry-operator2 get csv
 
 ```bash {name=install-otel:check-csv-status-output}
 NAME                                    DISPLAY                                  VERSION      REPLACES   PHASE
-opentelemetry-operator2.v0.146.0-r0     Alauda Build of OpenTelemetry v2         0.146.0-r0              Succeeded
+opentelemetry-operator2.v0.147.0-r0     Alauda Build of OpenTelemetry v2         0.147.0-r0              Succeeded
 ```
 
 **Fields**
