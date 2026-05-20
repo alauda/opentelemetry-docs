@@ -92,13 +92,13 @@ Verify that the Operator installation status is reported as `Succeeded` in the *
 
 3. Create a namespace
 
-    ```bash {name=install-otel:create-namespace-operator}
+    ```bash {name=install-otel:create-namespace-opentelemetry-operator2}
     kubectl get namespace opentelemetry-operator2 || kubectl create namespace opentelemetry-operator2
     ```
 
 4. Create a Subscription
 
-    ```bash {name=install-otel:create-subscription}
+    ```bash {name=install-otel:create-subscription-opentelemetry-operator2}
     kubectl apply -f - <<EOF
     apiVersion: operators.coreos.com/v1alpha1
     kind: Subscription
@@ -165,7 +165,7 @@ Verify that the Operator installation status is reported as `Succeeded` in the *
 
     **Approve manually**
 
-    ```bash {name=install-otel:approve-installplan}
+    ```bash {name=install-otel:approve-installplan-manual}
     PLAN="$(kubectl -n opentelemetry-operator2 get subscription opentelemetry-operator2 -o jsonpath='{.status.installPlanRef.name}')"
     kubectl -n opentelemetry-operator2 patch installplan "$PLAN" --type=json -p='[{"op": "replace", "path": "/spec/approved", "value": true}]'
     ```
