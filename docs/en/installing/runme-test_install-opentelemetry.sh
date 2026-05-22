@@ -53,6 +53,15 @@ test_install_opentelemetry() {
         return 1
     }
 
+    log_info "等待 otel OpenTelemetryCollector status.scale.statusReplicas=1/1"
+    kubectl wait "opentelemetrycollector/otel" \
+        -n opentelemetry-collector \
+        --for=jsonpath='{.status.scale.statusReplicas}'=1/1 \
+        --timeout=180s || {
+        log_error "等待 otel OpenTelemetryCollector status.scale.statusReplicas=1/1 失败"
+        return 1
+    }
+
     # 步骤 4: 等待 Collector Pod Ready
     log_info "阶段 2.3: 等待 Collector Pod Ready"
     runme run install-otel:wait-collector-ready || {
