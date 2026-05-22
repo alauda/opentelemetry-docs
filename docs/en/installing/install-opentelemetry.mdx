@@ -215,7 +215,7 @@ Before deploying the OpenTelemetry Collector, create a dedicated namespace for t
 The `opentelemetry-collector` namespace used throughout this guide is an example. You can create and use a namespace with any name that suits your organization's naming conventions.
 :::
 
-  ```bash
+  ```bash {name=install-otel:create-namespace-opentelemetry-collector}
   kubectl get namespace opentelemetry-collector || \
     kubectl create namespace opentelemetry-collector
   ```
@@ -307,7 +307,7 @@ Wait until the pods of the OpenTelemetry Collector are running.
 
 1. Customize and apply the `OpenTelemetryCollector` custom resource (CR):
 
-    ```bash
+    ```bash {name=install-otel:deploy-collector}
     kubectl apply -f - <<EOF
     apiVersion: opentelemetry.io/v1beta1
     kind: OpenTelemetryCollector
@@ -353,7 +353,7 @@ Wait until the pods of the OpenTelemetry Collector are running.
 
 2. Wait for the Collector pods to be ready:
 
-    ```bash
+    ```bash {name=install-otel:wait-collector-ready}
     kubectl wait --for=condition=Ready pod -l app.kubernetes.io/managed-by=opentelemetry-operator -n opentelemetry-collector --timeout=3m
     ```
 
@@ -361,13 +361,13 @@ Wait until the pods of the OpenTelemetry Collector are running.
 
 Check that the Collector pods are running:
 
-```shell
+```shell {name=install-otel:check-collector-pods}
 kubectl get pods -n opentelemetry-collector
 ```
 
 **Example output**
 
-```bash
+```text {name=install-otel:check-collector-pods-output}
 NAME                              READY   STATUS    RESTARTS   AGE
 otel-collector-7877b4cdcf-bj7br   1/1     Running   0          69s
 ```
