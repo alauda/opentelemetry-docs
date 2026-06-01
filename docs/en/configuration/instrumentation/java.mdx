@@ -155,12 +155,12 @@ metadata:
   namespace: java-development
 spec:
   java:
-    image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:2.26.1
+    image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:2.26.1 # [!code callout]
     env:
       - name: OTEL_JAVAAGENT_DEBUG
         value: "false"
   exporter:
-    endpoint: http://otel-collector.observability.svc:4318
+    endpoint: http://otel-collector.observability.svc:4318 # [!code callout]
   env:
     - name: OTEL_RESOURCE_ATTRIBUTES
       value: deployment.environment.name=development
@@ -186,7 +186,7 @@ spec:
       labels:
         app: java-app
       annotations:
-        instrumentation.opentelemetry.io/inject-java: "true"
+        instrumentation.opentelemetry.io/inject-java: "true" # [!code callout]
     spec:
       containers:
       - name: app
@@ -194,6 +194,12 @@ spec:
         ports:
         - containerPort: 8080
 ```
+
+<Callouts>
+1. The Java auto-instrumentation image used by the Operator to inject the agent. The v2 Operator does not ship a Java agent image, so you must build or supply one yourself. See the warning in [Instrumentation Options](./instrumentation-options.mdx).
+2. The OTLP exporter endpoint. Replace this URL with the address of your actual OpenTelemetry Collector.
+3. Enables Java auto-instrumentation injection for this pod. See [Supported Values for Injection Annotations](./instrumentation-options.mdx#supported-injection-values) for the accepted values.
+</Callouts>
 
 ## Configuration Reference
 
