@@ -50,7 +50,7 @@
 | Java Agent 镜像来源 | Alauda 随 Operator 镜像提供 | 不再提供，需用户配置 |
 | `Instrumentation.spec.java.image` | 通常留空，由 Operator 注入 Alauda 默认镜像 | **必填**（除非 Operator/Webhook 中显式声明默认值，本项目文档约定用户显式提供） |
 
-迁移示例（参考 `docs/en/configuration/instrumentation/java.mdx`）：
+迁移示例（参考 `docs/en/configuration/instrumentation/java-instrumentation.mdx`）：
 
 ```yaml
 spec:
@@ -461,7 +461,7 @@ kubectl -n <ns> exec <pod> -- env | grep -E '^(JAVA_TOOL_OPTIONS|OTEL_)'
 
 - v2 安装：`docs/en/installing/install-opentelemetry.mdx`
 - v2 卸载：`docs/en/uninstalling/uninstalling-opentelemetry.mdx`
-- v2 Java 注入配置：`docs/en/configuration/instrumentation/java.mdx`
+- v2 Java 注入配置：`docs/en/configuration/instrumentation/java-instrumentation.mdx`
 - v2 Instrumentation 通用配置：`docs/en/configuration/instrumentation/instrumentation-options.mdx`
 - v2 Release Notes（支持组件清单）：`docs/en/about/release-notes/v2-0-0.mdx`
 - v1 安装/卸载与 ACP Tracing 集成：`acp-docs/docs/en/observability/tracing/installation.mdx`
