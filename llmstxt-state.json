@@ -192,7 +192,7 @@
       "generation_method": "ai_agent_reading",
       "updated_at": "2026-05-16T09:38:59Z"
     },
-    "docs/en/configuration/instrumentation/apache-httpd.mdx": {
+    "docs/en/configuration/instrumentation/apache-httpd-instrumentation.mdx": {
       "sha256": "5b8cd2167ba4b88637a63017badd3cce70554093dccad8fabcfc46b94319a30e",
       "size": 1397,
       "description": "Enables Apache HTTP Server auto-instrumentation by annotating a Pod or namespace with `instrumentation.opentelemetry.io/inject-apache-httpd: \"true\"`. The Operator injects the OpenTelemetry Apache module into `httpd` containers to capture request paths, status codes, and timing without code changes, and links to the upstream OpenTelemetry Operator README for parameter reference.",
@@ -206,7 +206,7 @@
       "generation_method": "ai_agent_reading",
       "updated_at": "2026-05-16T09:38:59Z"
     },
-    "docs/en/configuration/instrumentation/dotnet.mdx": {
+    "docs/en/configuration/instrumentation/dotnet-instrumentation.mdx": {
       "sha256": "e79a80fca0022b76e8a5303b22433b7ef40f452604d7968eaae2392dd5b1a818",
       "size": 1336,
       "description": "Activates .NET auto-instrumentation for ASP.NET Core, Entity Framework, and other libraries by annotating Pods with `instrumentation.opentelemetry.io/inject-dotnet: \"true\"`. The Operator injects the OpenTelemetry .NET automatic instrumentation into the container so the runtime loads it at startup; links to the upstream operator docs for supported libraries and configuration details.",
@@ -220,7 +220,7 @@
       "generation_method": "ai_agent_reading",
       "updated_at": "2026-05-16T09:38:59Z"
     },
-    "docs/en/configuration/instrumentation/go.mdx": {
+    "docs/en/configuration/instrumentation/go-instrumentation.mdx": {
       "sha256": "0e02a120f26c868bfee6f2c5f9457b19ad24f8f5cdb793d03ea4b6a528582158",
       "size": 1280,
       "description": "Enables Go auto-instrumentation, which uses eBPF to capture function calls and HTTP requests at runtime, by annotating Pods with `instrumentation.opentelemetry.io/inject-go: \"true\"`. The Operator injects the OpenTelemetry Go auto-instrumentation components into Go application containers without requiring recompilation, and links to the upstream operator docs for supported Go versions and advanced options.",
@@ -241,7 +241,7 @@
       "generation_method": "ai_agent_reading",
       "updated_at": "2026-05-16T09:38:59Z"
     },
-    "docs/en/configuration/instrumentation/java.mdx": {
+    "docs/en/configuration/instrumentation/java-instrumentation.mdx": {
       "sha256": "dcf4c518862c5d87c0e0d2a8fe0fc8d90b5024b49a207f97ea6f704aa6bbf99f",
       "size": 5480,
       "description": "Java auto-instrumentation via the OpenTelemetry Java agent JAR, injected by the Operator and loaded through `JAVA_TOOL_OPTIONS` with the `-javaagent` flag to bytecode-instrument Servlet, Spring MVC, JAX-RS, JDBC, Hibernate, JMS, Kafka, RabbitMQ, gRPC, Redis, and Memcached. Covers enabling injection through the `instrumentation.opentelemetry.io/inject-java` annotation, toggling individual instrumentations with variables like `OTEL_INSTRUMENTATION_JDBC_ENABLED` and `OTEL_INSTRUMENTATION_KAFKA_ENABLED`, controlling the agent itself with `OTEL_JAVAAGENT_ENABLED`/`OTEL_JAVAAGENT_DEBUG`/`OTEL_JAVAAGENT_EXTENSIONS`, overriding the agent image, multi-container selection, JVM 8+ support, and troubleshooting steps such as inspecting the init container and the agent JAR volume mounted at `/otel-auto-instrumentation-java-<container-name>/`.",
@@ -255,14 +255,14 @@
       "generation_method": "ai_agent_reading",
       "updated_at": "2026-05-16T09:38:59Z"
     },
-    "docs/en/configuration/instrumentation/nodejs.mdx": {
+    "docs/en/configuration/instrumentation/nodejs-instrumentation.mdx": {
       "sha256": "756349c5fa867a4d0718fe28c7a685007ed168f6f58b0a9e2cab8ea0f5afe49a",
       "size": 1374,
       "description": "Enabling Node.js auto-instrumentation for Express, Fastify, and Nest.js applications by adding the `instrumentation.opentelemetry.io/inject-nodejs: \"true\"` annotation to a pod or namespace, which causes the Operator to inject OpenTelemetry Node.js components and wire them into the runtime at startup so traces, metrics, and logs are captured without code changes. Defers detailed library, configuration, and advanced usage references to the upstream OpenTelemetry Operator documentation.",
       "generation_method": "ai_agent_reading",
       "updated_at": "2026-05-16T09:38:59Z"
     },
-    "docs/en/configuration/instrumentation/python.mdx": {
+    "docs/en/configuration/instrumentation/python-instrumentation.mdx": {
       "sha256": "2784e72cf30014e04d80453bae522ffd22916dbbab8a3bed607f83f1458f2704",
       "size": 1376,
       "description": "Enabling Python auto-instrumentation for Django, Flask, and FastAPI applications via the `instrumentation.opentelemetry.io/inject-python: \"true\"` pod or namespace annotation, which prompts the Operator to inject the OpenTelemetry Python automatic instrumentation and configure the Python runtime to load it at startup for code-free trace, metric, and log capture. Points to the upstream OpenTelemetry Operator docs for supported libraries and advanced configuration.",
