@@ -119,7 +119,7 @@ The backup files are only used as a configuration reference and as a rollback ar
 
 ### Preparing the Java agent image \{#preparing-the-java-agent-image}
 
-In v1, Alauda ships a customized Java auto-instrumentation image with the Operator and the Operator injects it automatically; users normally leave `Instrumentation.spec.java.image` unset. In v2, the Operator no longer ships a Java agent image, and you must set `spec.java.image` explicitly on every `Instrumentation` resource that targets Java workloads. See [Java Auto-instrumentation](../configuration/instrumentation/java.mdx) for details.
+In v1, Alauda ships a customized Java auto-instrumentation image with the Operator and the Operator injects it automatically; users normally leave `Instrumentation.spec.java.image` unset. In v2, the Operator no longer ships a Java agent image, and you must set `spec.java.image` explicitly on every `Instrumentation` resource that targets Java workloads. See [Java Auto-instrumentation](../configuration/instrumentation/java-instrumentation.mdx) for details.
 
 | Option | When to use | Example |
 | :--- | :--- | :--- |
