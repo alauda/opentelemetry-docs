@@ -101,14 +101,17 @@ The patterns above are for **textual logs** (console or file) that are read or s
 
 ## Other languages
 
-Detailed in-product guidance is provided for Java only. Log-to-trace correlation for other languages is handled by each language's OpenTelemetry SDK and instrumentation, and the field names and mechanisms differ per language. Refer to the upstream OpenTelemetry documentation for the language you use:
+Detailed in-product guidance is provided for Java only. The other OpenTelemetry languages also correlate logs with traces under zero-code (auto-instrumentation), but the injected field names and how you enable them differ per language. Refer to the upstream guidance for the language you use:
 
-| Language | Reference |
-| --- | --- |
-| Python | [OpenTelemetry Python](https://opentelemetry.io/docs/languages/python/) |
-| Node.js | [OpenTelemetry JavaScript](https://opentelemetry.io/docs/languages/js/) |
-| Go | [OpenTelemetry Go](https://opentelemetry.io/docs/languages/go/) |
-| .NET | [OpenTelemetry .NET](https://opentelemetry.io/docs/languages/net/) |
+| Language | Reference | How correlation works |
+| --- | --- | --- |
+| Python | [Logs auto-instrumentation example](https://opentelemetry.io/docs/zero-code/python/logs-example/) | `opentelemetry-instrument` adds `otelTraceID` / `otelSpanID` to log records; set `OTEL_PYTHON_LOG_CORRELATION=true` to inject them into textual log output. |
+| Node.js | [`instrumentation-pino`](https://github.com/open-telemetry/opentelemetry-js-contrib/tree/main/packages/instrumentation-pino), [`instrumentation-winston`](https://github.com/open-telemetry/opentelemetry-js-contrib/tree/main/packages/instrumentation-winston), [`instrumentation-bunyan`](https://github.com/open-telemetry/opentelemetry-js-contrib/tree/main/packages/instrumentation-bunyan) | Bundled in `@opentelemetry/auto-instrumentations-node`; each injects `trace_id` / `span_id` / `trace_flags` into log records by default. |
+| .NET | [Log to trace correlation](https://opentelemetry.io/docs/zero-code/dotnet/) | The .NET Automatic Instrumentation auto-populates `TraceId` / `SpanId` / `TraceState` on `ILogger` records, with no configuration required. |
+
+:::note
+Go is intentionally omitted: it has no runtime agent, and its eBPF-based auto-instrumentation does not inject trace context into application logs. Log-trace correlation in Go is done manually in code — for example, by reading the span context from `context.Context`, or via the [`otelslog`](https://pkg.go.dev/go.opentelemetry.io/contrib/bridges/otelslog) bridge — so there is no zero-code reference to link here.
+:::
 
 ## References \{#references}
 
