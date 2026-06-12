@@ -1,0 +1,117 @@
+---
+weight: 105
+---
+
+# Correlating Application Logs with Traces
+
+When the OpenTelemetry Java agent instruments your application, it can automatically add the active trace context — `trace_id`, `span_id`, and `trace_flags` — to your application's logging context (MDC). By printing these values in your log output, you can pivot directly from a log line to its corresponding trace, and from a trace back to the logs that a request produced.
+
+This page explains how to surface the trace context in logs for **Java** applications.
+
+:::warning
+**Prerequisite:** this guide assumes your application is **already instrumented by the OpenTelemetry Java agent 2.x**, injected through the `Instrumentation` custom resource and the `instrumentation.opentelemetry.io/inject-java` annotation. The MDC keys described below are populated by the agent at runtime — if the agent is not injected, these keys will be empty no matter how you configure the log pattern. See [Java Auto-instrumentation](./java-instrumentation.mdx) to enable injection first.
+:::
+
+## How it works
+
+The Java agent ships logging instrumentations that copy the current span context into your logging library's MDC (Mapped Diagnostic Context). You do **not** parse HTTP headers or write any code to do this — the agent extracts the context from propagation headers and populates the MDC automatically. The injected keys are:
+
+| Key | Description |
+| --- | --- |
+| `trace_id` | The 32-character trace ID of the active span. |
+| `span_id` | The 16-character span ID of the active span. |
+| `trace_flags` | The W3C trace flags in hexadecimal (for example, `01` when the span is sampled). |
+
+These keys use **snake_case** and are the agent's built-in defaults. Injection is **enabled by default**, so the only thing you have to do is reference the keys in your log output pattern.
+
+The instrumentation is matched to your logging library:
+
+| Logging library | Instrumentation module | Minimum version |
+| --- | --- | --- |
+| Logback | `logback-mdc-1.0` | 1.0+ |
+| Log4j 2 | `log4j-context-data-2.17` | 2.7+ |
+| Log4j 1 | `log4j-mdc-1.2` | 1.2+ |
+
+If you ever need to turn a specific injection off (or back on), set the corresponding property or environment variable on the workload. Each defaults to `true`:
+
+| System property | Environment variable |
+| --- | --- |
+| `otel.instrumentation.logback-mdc.enabled` | `OTEL_INSTRUMENTATION_LOGBACK_MDC_ENABLED` |
+| `otel.instrumentation.log4j-context-data.enabled` | `OTEL_INSTRUMENTATION_LOG4J_CONTEXT_DATA_ENABLED` |
+| `otel.instrumentation.log4j-mdc.enabled` | `OTEL_INSTRUMENTATION_LOG4J_MDC_ENABLED` |
+
+## Surfacing the IDs in your log output
+
+Choose the option that matches how your application is configured. All three reference the same snake_case MDC keys, so a sampled request produces a log line such as:
+
+```text
+2026-06-12 10:15:42.123 trace_id=4bf92f3577b34da6a3ce929d0e0e4736 span_id=00f067aa0ba902b7 trace_flags=01 INFO  ProviderController - request /hello
+```
+
+### Spring Boot
+
+For a Spring Boot application, the simplest approach is to override `logging.pattern.level` so the IDs are prepended to every log line without rewriting the whole pattern:
+
+```properties
+logging.pattern.level = trace_id=%mdc{trace_id} span_id=%mdc{span_id} trace_flags=%mdc{trace_flags} %5p
+```
+
+:::note
+This is the exact form documented in the upstream OpenTelemetry instrumentation README (see [References](#references)). Overriding `logging.pattern.level` is a Spring Boot convention; the snake_case keys are what the agent provides.
+:::
+
+### Logback
+
+If you manage your own `logback.xml` or `logback-spring.xml`, reference the keys with `%X{...}` (which is equivalent to `%mdc{...}` in Logback) inside the pattern:
+
+```xml
+<appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+  <encoder>
+    <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} trace_id=%X{trace_id} span_id=%X{span_id} trace_flags=%X{trace_flags} %-5level %logger{36} - %msg%n</pattern>
+  </encoder>
+</appender>
+```
+
+For applications that rely on Spring Boot's default console appender, you can override the `CONSOLE_LOG_PATTERN` property instead, embedding the same `%X{trace_id}` tokens in the pattern.
+
+### Log4j 2
+
+For Log4j 2, reference the keys with `%X{...}` in a `PatternLayout`:
+
+```xml
+<Console name="Console" target="SYSTEM_OUT">
+  <PatternLayout
+    pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} trace_id=%X{trace_id} span_id=%X{span_id} trace_flags=%X{trace_flags} %-5p %c{1} - %m%n"/>
+</Console>
+```
+
+## OpenTelemetry agent keys vs. Spring Boot / Micrometer native correlation
+
+:::warning
+The snake_case keys (`trace_id`, `span_id`, `trace_flags`) apply when the **OpenTelemetry Java agent** is the source of the trace context — which is the assumption throughout this documentation.
+
+Spring Boot 3 with **Micrometer Tracing** has its own, separate log-correlation feature that uses **camelCase** keys (`traceId`, `spanId`) through `logging.pattern.correlation`. That is a different mechanism from the agent.
+
+Use the keys that match your trace source. If you reference `%X{traceId}` while the agent (not Micrometer) supplies the context, the field prints empty — and likewise `%X{trace_id}` is empty when only Micrometer is active. Do not mix the two conventions.
+:::
+
+## Exporting logs through OTLP
+
+The patterns above are for **textual logs** (console or file) that are read or scraped as text. If you instead export logs directly through OTLP, the `trace_id` and `span_id` are carried in the OTLP log record's dedicated fields rather than as MDC attributes, so OTLP-exported logs stay correlated without adding the IDs to the log pattern.
+
+## Other languages
+
+Detailed in-product guidance is provided for Java only. Log-to-trace correlation for other languages is handled by each language's OpenTelemetry SDK and instrumentation, and the field names and mechanisms differ per language. Refer to the upstream OpenTelemetry documentation for the language you use:
+
+| Language | Reference |
+| --- | --- |
+| Python | [OpenTelemetry Python](https://opentelemetry.io/docs/languages/python/) |
+| Node.js | [OpenTelemetry JavaScript](https://opentelemetry.io/docs/languages/js/) |
+| Go | [OpenTelemetry Go](https://opentelemetry.io/docs/languages/go/) |
+| .NET | [OpenTelemetry .NET](https://opentelemetry.io/docs/languages/net/) |
+
+## References \{#references}
+
+- **[Logger MDC auto-instrumentation](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/docs/logger-mdc-instrumentation.md)** — the authoritative list of injected keys and supported logging libraries.
+- **[Logback MDC instrumentation README](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/logback/logback-mdc-1.0/library/README.md)** — pattern examples and configuration options.
+- **[Java agent configuration](https://opentelemetry.io/docs/zero-code/java/agent/configuration/)** and **[suppressing specific instrumentation](https://opentelemetry.io/docs/zero-code/java/agent/disable/)** — how to toggle individual instrumentations.
