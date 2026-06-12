@@ -201,6 +201,10 @@ spec:
 3. Enables Java auto-instrumentation injection for this pod. See [Supported Values for Injection Annotations](./instrumentation-options.mdx#supported-values-for-injection-annotations) for the accepted values.
 </Callouts>
 
+## Correlating Application Logs with Traces
+
+Once the Java agent is injected, it can also add the active `trace_id` and `span_id` to your application logs, letting you pivot between a log line and its trace. For Spring Boot, Logback, and Log4j 2 examples, see [Correlating Application Logs with Traces](./correlating-logs-with-traces.mdx).
+
 ## Configuration Reference
 
 For detailed configuration options, supported libraries, and advanced usage scenarios, refer to the official OpenTelemetry Operator documentation:
