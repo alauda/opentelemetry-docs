@@ -63,7 +63,7 @@ test_java_instrumentation() {
 
     # 步骤 0: 前提校验（USE_MESH_V2_TEST_SUITE_PLUGIN=true）
     if ! _use_test_suite_plugin; then
-        log_warn "SKIPPED: 未设置 USE_MESH_V2_TEST_SUITE_PLUGIN=true，跳过 Java OTel demo 测试"
+        skip_test "未设置 USE_MESH_V2_TEST_SUITE_PLUGIN=true，跳过 Java OTel demo 测试"
         return 0
     fi
 
