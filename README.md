@@ -52,3 +52,19 @@ $ yarn install
 5. 确认无误后提交改动并发起 PR。
 
 > 提示：若想新增其它需要随版本一起更新的文件类型或目录，可直接编辑 `hack/update-otel-version.sh` 中的 `grep -r --include='*.mdx'` 与 `DOCS_DIR` 配置。
+
+## Java 自动插桩镜像版本更新
+
+使用 `hack/update-java-autoinstrumentation-version.sh` 批量更新 `./docs/en/` 下所有 `.mdx` 文档中的 `autoinstrumentation-java` 镜像版本。脚本支持官方 GHCR 镜像以及自建或镜像仓库地址。
+
+### 用法
+
+```bash
+./hack/update-java-autoinstrumentation-version.sh <旧版本> <新版本>
+```
+
+例如，将镜像版本从 `2.26.1` 更新为 `2.29.0`：
+
+```bash
+./hack/update-java-autoinstrumentation-version.sh 2.26.1 2.29.0
+```
