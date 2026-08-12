@@ -22,13 +22,13 @@ fi
 OLD_VERSION="$1"
 NEW_VERSION="$2"
 
-VERSION_RE='^[0-9]+\.[0-9]+\.[0-9]+-r[0-9]+$'
+VERSION_RE='^[0-9]+\.[0-9]+\.[0-9]+-r.+$'
 if ! [[ "$OLD_VERSION" =~ $VERSION_RE ]]; then
-  echo "Error: old version '$OLD_VERSION' does not match format X.Y.Z-rN" >&2
+  echo "Error: old version '$OLD_VERSION' does not match format X.Y.Z-r<value>" >&2
   exit 1
 fi
 if ! [[ "$NEW_VERSION" =~ $VERSION_RE ]]; then
-  echo "Error: new version '$NEW_VERSION' does not match format X.Y.Z-rN" >&2
+  echo "Error: new version '$NEW_VERSION' does not match format X.Y.Z-r<value>" >&2
   exit 1
 fi
 
