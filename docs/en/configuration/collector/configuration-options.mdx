@@ -75,11 +75,17 @@ The following table describes the main configuration parameters used by the Oper
 | Parameter | Description | Values | Default |
 |-----------|-------------|-------------------|---------|
 | `receivers` | Defines how data enters the Collector. At least one receiver must be enabled in a pipeline for valid configuration. | otlp, jaeger, prometheus, zipkin, kafka | None |
-| `processors` | Defines data transformation operations applied between receiving and exporting. Processors are optional. | batch, memory_limiter, resourcedetection, attributes, span, k8sattributes, filter, routing | None |
+| `processors` | Defines data transformation operations applied between receiving and exporting. Processors are optional. | batch, memory_limiter, resourcedetection, attributes, span, k8sattributes, filter | None |
 | `exporters` | Defines destinations for processed data. At least one exporter must be enabled in a pipeline for valid configuration. | otlp, otlphttp, debug, prometheus, kafka | None |
 | `connectors` | Defines components that join pipeline pairs by consuming data as exporters and emitting data as receivers. | spanmetrics, count, routing, forward | None |
-| `extensions` | Defines optional components for auxiliary tasks that don't involve telemetry data processing. | bearertokenauth, oauth2client, pprof, health_check, memory_ballast, zpages | None |
+| `extensions` | Defines optional components for auxiliary tasks that don't involve telemetry data processing. | bearertokenauth, oauth2client, pprof, health_check, zpages | None |
 | `service.pipelines` | Enables components by adding them to pipelines. Components must be listed here to become active. | N/A | None |
+
+The **Values** column lists representative components only. For the full set of supported components, see [Receivers](./receivers.mdx), [Processors](./processors.mdx), [Exporters](./exporters.mdx), [Connectors](./connectors.mdx), and [Extensions](./extensions.mdx).
+
+:::note
+Routing is provided by the `routing` **connector**, not by a processor. There is no routing processor.
+:::
 
 ## Pipeline Configuration
 
