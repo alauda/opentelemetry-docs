@@ -68,7 +68,7 @@ config:
   exporters:
     debug:
       verbosity: detailed
-    otlp:
+    otlp_grpc:
       endpoint: jaeger-collector:4317
       tls:
         insecure: true
@@ -77,7 +77,7 @@ config:
       traces:
         receivers: [otlp]
         processors: [batch]
-        exporters: [debug, otlp]
+        exporters: [debug, otlp_grpc]
 ```
 
 In this configuration, traces data is sent to both the Debug Exporter and the OTLP exporter.

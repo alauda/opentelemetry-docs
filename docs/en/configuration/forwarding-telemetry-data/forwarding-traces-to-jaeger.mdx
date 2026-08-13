@@ -50,7 +50,7 @@ To send traces to a Jaeger instance, deploy an OpenTelemetry Collector in `deplo
            limit_percentage: 80
            spike_limit_percentage: 20
        exporters:
-         otlp/traces:
+         otlp_grpc/traces: # [!code callout]
            endpoint: "jaeger-collector.jaeger-system.svc.cluster.local:4317" # [!code callout]
            tls:
              insecure: true
@@ -59,14 +59,15 @@ To send traces to a Jaeger instance, deploy an OpenTelemetry Collector in `deplo
            traces:
              receivers: [jaeger, otlp, zipkin] # [!code callout]
              processors: [memory_limiter, k8s_attributes, batch]
-             exporters: [otlp/traces]
+             exporters: [otlp_grpc/traces]
    EOF
    ```
 
    <Callouts>
     1. The namespace determines where the Collector resources are created.
-    2. The exporter endpoint must point to the Jaeger collector service. Replace `jaeger-collector.jaeger-system.svc.cluster.local:4317` with the actual service of your Jaeger deployment.
-    3. This trace pipeline accepts Jaeger, OTLP, and Zipkin traffic. Configure your instrumented applications to send traces by using one of these receiver protocols.
+    2. The OTLP gRPC exporter is named `otlp_grpc`. The former name `otlp` still works but is deprecated. Note that the OTLP **receiver** keeps the name `otlp`; see [Component type names](../collector/configuration-options.mdx#component-type-names).
+    3. The exporter endpoint must point to the Jaeger collector service. Replace `jaeger-collector.jaeger-system.svc.cluster.local:4317` with the actual service of your Jaeger deployment.
+    4. This trace pipeline accepts Jaeger, OTLP, and Zipkin traffic. Configure your instrumented applications to send traces by using one of these receiver protocols.
    </Callouts>
 
 After the Collector is running, instrumented applications can send trace data to the Collector service endpoint, and the Collector forwards the traces to Jaeger.

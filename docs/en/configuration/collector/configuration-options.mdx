@@ -44,7 +44,7 @@ spec:
           http: {}
     processors: {}
     exporters:
-      otlp:
+      otlp_grpc: # [!code callout]
         endpoint: otel-collector-headless.tracing-system.svc:4317
         tls:
           ca_file: "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
@@ -57,7 +57,7 @@ spec:
         traces:
           receivers: [otlp]
           processors: []
-          exporters: [otlp]
+          exporters: [otlp_grpc]
         metrics:
           receivers: [otlp]
           processors: []
@@ -65,8 +65,27 @@ spec:
 ```
 
 <Callouts>
-1. Components defined in the configuration but not referenced in the `service.pipelines` section remain inactive. A component must be added to at least one pipeline to function.
+1. The OTLP **exporter** is named `otlp_grpc`, while the OTLP **receiver** above keeps the name `otlp`. See [Component type names](#component-type-names).
+2. Components defined in the configuration but not referenced in the `service.pipelines` section remain inactive. A component must be added to at least one pipeline to function.
 </Callouts>
+
+## Component type names \{#component-type-names}
+
+Upstream renamed most component type identifiers to snake_case, and renamed the two OTLP exporters so that the transport is explicit in the name:
+
+| Component | Deprecated type name | Current type name |
+| :-------- | :------------------- | :---------------- |
+| OTLP gRPC exporter | `otlp` | `otlp_grpc` |
+| OTLP HTTP exporter | `otlphttp` | `otlp_http` |
+
+The deprecated names still work, so existing configurations keep running, but the Collector logs a warning for each affected component instance and upstream intends to remove the aliases in a future release:
+
+```text
+warn  builders/builders.go:40  "otlp" alias is deprecated; use "otlp_grpc" instead
+  {"otelcol.component.id": "otlp/traces", "otelcol.component.kind": "exporter", "otelcol.signal": "traces"}
+```
+
+For the full list of renamed components, see the [v2.1.0 Release Notes](../../about/release-notes/v2-1-0.mdx#snake-case-names).
 
 ## Configuration Parameters
 
@@ -76,7 +95,7 @@ The following table describes the main configuration parameters used by the Oper
 |-----------|-------------|-------------------|---------|
 | `receivers` | Defines how data enters the Collector. At least one receiver must be enabled in a pipeline for valid configuration. | otlp, jaeger, prometheus, zipkin, kafka | None |
 | `processors` | Defines data transformation operations applied between receiving and exporting. Processors are optional. | batch, memory_limiter, resourcedetection, attributes, span, k8s_attributes, filter | None |
-| `exporters` | Defines destinations for processed data. At least one exporter must be enabled in a pipeline for valid configuration. | otlp, otlphttp, debug, prometheus, kafka | None |
+| `exporters` | Defines destinations for processed data. At least one exporter must be enabled in a pipeline for valid configuration. | otlp_grpc, otlp_http, debug, prometheus, kafka | None |
 | `connectors` | Defines components that join pipeline pairs by consuming data as exporters and emitting data as receivers. | span_metrics, count, routing, forward | None |
 | `extensions` | Defines optional components for auxiliary tasks that don't involve telemetry data processing. | bearertokenauth, oauth2client, pprof, health_check, zpages | None |
 | `service.pipelines` | Enables components by adding them to pipelines. Components must be listed here to become active. | N/A | None |
@@ -99,7 +118,7 @@ service:
     traces:
       receivers: [otlp, jaeger]
       processors: [batch, memory_limiter]
-      exporters: [otlp, debug]
+      exporters: [otlp_grpc, debug]
     metrics:
       receivers: [otlp, prometheus]
       processors: [batch]
@@ -107,7 +126,7 @@ service:
     logs:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlp]
+      exporters: [otlp_grpc]
 ```
 
 Each pipeline independently processes its telemetry type, allowing you to configure different processing logic for traces, metrics, and logs based on your observability requirements.

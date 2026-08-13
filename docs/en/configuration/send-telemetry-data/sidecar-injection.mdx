@@ -45,7 +45,7 @@ The Operator does not create `Service`, `Ingress`, `NetworkPolicy`, or `Horizont
            limit_percentage: 80
            spike_limit_percentage: 20
        exporters:
-         otlp:
+         otlp_grpc: # [!code callout]
            endpoint: "jaeger-<example>-collector:4317" # [!code callout]
            tls:
              insecure: true
@@ -54,13 +54,14 @@ The Operator does not create `Service`, `Ingress`, `NetworkPolicy`, or `Horizont
            traces:
              receivers: [otlp]
              processors: [memory_limiter, batch]
-             exporters: [otlp]
+             exporters: [otlp_grpc]
    EOF
    ```
 
    <Callouts>
     1. Replace `<image-registry>/asm/opentelemetry-collector:<image-tag>` with the actual image registry and tag for the sidecar Collector.
-    2. Replace `jaeger-<example>-collector` with the actual service name of your Alauda Build of Jaeger v2 collector. The format is typically `<instance-name>-collector`.
+    2. The OTLP gRPC exporter is named `otlp_grpc`. The former name `otlp` still works but is deprecated. Note that the OTLP **receiver** keeps the name `otlp`; see [Component type names](../collector/configuration-options.mdx#component-type-names).
+    3. Replace `jaeger-<example>-collector` with the actual service name of your Alauda Build of Jaeger v2 collector. The format is typically `<instance-name>-collector`.
    </Callouts>
 
 2. Create a deployment that uses the sidecar injection by adding the annotation `sidecar.opentelemetry.io/inject: "true"` and using the created ServiceAccount:
