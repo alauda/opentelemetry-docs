@@ -39,7 +39,7 @@ This release moves from upstream Operator 0.147.0 and Collector 0.147.0 to Opera
 
 ### Component type names now use snake_case
 
-Upstream renamed most component type identifiers to snake_case. The previous names remain available as deprecated aliases, so existing configurations continue to work, but the Collector logs a deprecation warning on startup and upstream intends to remove the aliases in a future release. Update your `OpenTelemetryCollector` resources to the new names.
+Upstream renamed most component type identifiers to snake_case. The previous names remain available as deprecated aliases, so existing configurations continue to work, but the Collector logs a deprecation warning on startup and upstream intends to remove the aliases in a future release. Update your `OpenTelemetryCollector` resources to the new names, with the exception noted below.
 
 | Component | Previous type name | Current type name |
 | :-------- | :----------------- | :---------------- |
@@ -56,6 +56,12 @@ Upstream renamed most component type identifiers to snake_case. The previous nam
 | Prometheus Remote Write exporter | `prometheusremotewrite` | `prometheus_remote_write` |
 | Load Balancing exporter | `loadbalancing` | `load_balancing` |
 | Spanmetrics connector | `spanmetrics` | `span_metrics` |
+
+:::warning Components that drive automatic RBAC generation are an exception
+The Operator matches component type names literally when it decides which RBAC to generate, and it has not yet been updated for all of the new names. Keep configuring the Kubernetes Objects receiver as `k8sobjects`, the Kubelet Stats receiver as `kubeletstats`, and the Resource Detection processor as `resourcedetection`. Under their snake_case names, the Operator generates no `ClusterRole` for these components and the Collector fails at runtime with permission errors; `kubelet_stats` additionally loses the injected `K8S_NODE_NAME` environment variable.
+
+The Kubernetes Attributes processor is safe to rename — the Operator recognizes both `k8sattributes` and `k8s_attributes`. See [Creating the Required RBAC Resources Automatically](../../installing/rbac-resources.mdx#component-name-spelling).
+:::
 
 The following component type names are unchanged: `otlp`, `otlphttp`, `jaeger`, `zipkin`, `kafka`, `prometheus`, `journald`, `k8s_cluster`, `k8s_events`, `debug`, `file`, `batch`, `memory_limiter`, `attributes`, `resource`, `span`, `filter`, `transform`, `groupbyattrs`, `tail_sampling`, `probabilistic_sampler`, `count`, `routing`, `forward`, `bearertokenauth`, `oauth2client`, `file_storage`, `oidc`, `jaegerremotesampling`, `pprof`, `health_check`, and `zpages`.
 
@@ -75,9 +81,12 @@ If you rely on OTTL failures surfacing as pipeline errors, set `error_mode: prop
 
 The top-level `topic` and `encoding` fields have been removed from the Kafka exporter. Move them under the corresponding signal section — `traces::topic`, `metrics::topic`, `logs::topic`, and the matching `encoding` fields. A configuration that still uses the top-level fields fails to start.
 
-### The Prometheus exporters ignore `add_metric_suffixes`
+### `add_metric_suffixes` is deprecated on the Prometheus exporters
 
-The `add_metric_suffixes` setting is deprecated and is now ignored by default on the Prometheus exporter and the Prometheus Remote Write exporter. If you previously set `add_metric_suffixes: false` to suppress metric name suffixes, replace it with `translation_strategy: UnderscoreEscapingWithoutSuffixes`.
+The `add_metric_suffixes` setting is deprecated in favor of `translation_strategy` on both Prometheus exporters, but the two exporters treat it differently in this release:
+
+- **Prometheus exporter** (`prometheus`): the setting is ignored. The `exporter.prometheusexporter.DisableAddMetricSuffixes` feature gate is enabled by default and forces the `translation_strategy` behavior. If you previously set `add_metric_suffixes: false`, the suffixes reappear unless you replace it with `translation_strategy: UnderscoreEscapingWithoutSuffixes`.
+- **Prometheus Remote Write exporter** (`prometheus_remote_write`): the setting is still honored, but setting it to `false` logs a deprecation warning on startup. Migrate to `translation_strategy: UnderscoreEscapingWithoutSuffixes`, which takes precedence when both fields are set.
 
 ### The Host Metrics receiver aggregates CPU metrics across logical CPUs
 

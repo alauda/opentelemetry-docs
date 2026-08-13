@@ -83,21 +83,19 @@ otelcol_receiver_accepted_spans
 If you are upgrading from an earlier release, any dashboard or alerting rule that filters or groups by `service_name`, `service_instance_id`, or `service_version` directly on an `otelcol_*` metric silently stops matching. Rewrite those queries to join against `target_info` as shown above.
 :::
 
-If rewriting queries is not practical, you can restore the label names on the scrape side instead. When the internal metrics endpoint is scraped through the Prometheus receiver, map the labels back with `metric_relabel_configs`:
+If rewriting every query is not practical, define a recording rule that performs the join once and query the recorded series instead:
 
 ```yaml
-receivers:
-  prometheus:
-    config:
-      scrape_configs:
-        - job_name: otel-collector
-          metric_relabel_configs:
-            - source_labels: [service_name]
-              target_label: service.name
-            - source_labels: [service_instance_id]
-              target_label: service.instance.id
-            - source_labels: [service_version]
-              target_label: service.version
-            - regex: service_name|service_instance_id|service_version
-              action: labeldrop
+groups:
+  - name: otelcol-internal-metrics
+    rules:
+      - record: otelcol:receiver_accepted_spans:with_identity
+        expr: |
+          otelcol_receiver_accepted_spans
+            * on (job, instance) group_left (service_name, service_version)
+            target_info
 ```
+
+:::note
+The identity attributes cannot be restored on the scrape side with `metric_relabel_configs`. Relabeling rules are evaluated per sample against the labels that sample already carries, so they cannot copy `service_name` from the `target_info` series onto the `otelcol_*` series. The join must happen at query time or in a recording rule.
+:::

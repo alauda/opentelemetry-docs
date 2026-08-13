@@ -65,11 +65,11 @@ NEW_VERSION="${POSITIONAL[1]}"
 # 允许裸 X.Y.Z（Collector 版本）以及带后缀的形式（如 -r0、-rc.2）。
 VERSION_RE='^[0-9]+\.[0-9]+\.[0-9]+([.+-][0-9A-Za-z.+-]+)?$'
 if ! [[ "$OLD_VERSION" =~ $VERSION_RE ]]; then
-  echo "错误：旧版本 '$OLD_VERSION' 不符合 X.Y.Z[-后缀] 格式" >&2
+  echo "错误：旧版本 '${OLD_VERSION}' 不符合 X.Y.Z[-后缀] 格式" >&2
   exit 1
 fi
 if ! [[ "$NEW_VERSION" =~ $VERSION_RE ]]; then
-  echo "错误：新版本 '$NEW_VERSION' 不符合 X.Y.Z[-后缀] 格式" >&2
+  echo "错误：新版本 '${NEW_VERSION}' 不符合 X.Y.Z[-后缀] 格式" >&2
   exit 1
 fi
 
@@ -83,7 +83,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 DOCS_DIR="$REPO_ROOT/docs/en"
 
 if [[ ! -d "$DOCS_DIR" ]]; then
-  echo "错误：文档目录不存在：$DOCS_DIR" >&2
+  echo "错误：文档目录不存在：${DOCS_DIR}" >&2
   exit 1
 fi
 
@@ -107,12 +107,14 @@ while IFS= read -r line; do
 done < <(grep -rlE --include='*.mdx' "$MATCH_RE" "$DOCS_DIR" || true)
 
 if [[ ${#FILES[@]} -eq 0 ]]; then
-  echo "docs/en/ 下没有 .mdx 文件包含版本号 '$OLD_VERSION'，无需更新。"
+  echo "docs/en/ 下没有 .mdx 文件包含版本号 '${OLD_VERSION}'，无需更新。"
   exit 0
 fi
 
 if [[ "$DRY_RUN" == true ]]; then
-  echo "[dry-run] 以下 ${#FILES[@]} 个文件包含 $OLD_VERSION，将被替换为 $NEW_VERSION："
+  # 变量一律加花括号：macOS 的 BSD libc 在 UTF-8 locale 下会把中文标点的首字节
+  # 当成字母，裸写 $VAR 时 bash 会把它并入变量名，配合 set -u 直接报 unbound variable。
+  echo "[dry-run] 以下 ${#FILES[@]} 个文件包含 ${OLD_VERSION}，将被替换为 ${NEW_VERSION}："
   for file in "${FILES[@]}"; do
     echo "  ${file#${REPO_ROOT}/}"
     grep -nE "$MATCH_RE" "$file" | sed -e 's/^/    /'
@@ -121,7 +123,7 @@ if [[ "$DRY_RUN" == true ]]; then
   exit 0
 fi
 
-echo "正在更新 ${#FILES[@]} 个文件：$OLD_VERSION -> $NEW_VERSION"
+echo "正在更新 ${#FILES[@]} 个文件：${OLD_VERSION} -> ${NEW_VERSION}"
 for file in "${FILES[@]}"; do
   # 单次 sed 会消费掉匹配右侧的分隔字符，导致同一行内相邻的版本号被跳过，
   # 因此反复替换直到文件内容不再变化。

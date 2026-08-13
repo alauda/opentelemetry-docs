@@ -75,7 +75,7 @@ The following table describes the main configuration parameters used by the Oper
 | Parameter | Description | Values | Default |
 |-----------|-------------|-------------------|---------|
 | `receivers` | Defines how data enters the Collector. At least one receiver must be enabled in a pipeline for valid configuration. | otlp, jaeger, prometheus, zipkin, kafka | None |
-| `processors` | Defines data transformation operations applied between receiving and exporting. Processors are optional. | batch, memory_limiter, resource_detection, attributes, span, k8s_attributes, filter | None |
+| `processors` | Defines data transformation operations applied between receiving and exporting. Processors are optional. | batch, memory_limiter, resourcedetection, attributes, span, k8s_attributes, filter | None |
 | `exporters` | Defines destinations for processed data. At least one exporter must be enabled in a pipeline for valid configuration. | otlp, otlphttp, debug, prometheus, kafka | None |
 | `connectors` | Defines components that join pipeline pairs by consuming data as exporters and emitting data as receivers. | span_metrics, count, routing, forward | None |
 | `extensions` | Defines optional components for auxiliary tasks that don't involve telemetry data processing. | bearertokenauth, oauth2client, pprof, health_check, zpages | None |
@@ -85,6 +85,10 @@ The **Values** column lists representative components only. For the full set of 
 
 :::note
 Routing is provided by the `routing` **connector**, not by a processor. There is no routing processor.
+:::
+
+:::note
+`resourcedetection` is shown in its original spelling on purpose. Upstream renamed it to `resource_detection`, but the Operator only generates the RBAC this processor needs under the original name. The same applies to the `k8sobjects` receiver and the `kubeletstats` receiver. See [Creating the Required RBAC Resources Automatically](../../installing/rbac-resources.mdx#component-name-spelling).
 :::
 
 ## Pipeline Configuration
