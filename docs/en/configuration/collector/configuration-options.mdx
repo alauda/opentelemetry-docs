@@ -83,10 +83,6 @@ The following table describes the main configuration parameters used by the Oper
 
 The **Values** column lists representative components only. For the full set of supported components, see [Receivers](./receivers.mdx), [Processors](./processors.mdx), [Exporters](./exporters.mdx), [Connectors](./connectors.mdx), and [Extensions](./extensions.mdx).
 
-:::note
-Routing is provided by the `routing` **connector**, not by a processor. There is no routing processor.
-:::
-
 ## Pipeline Configuration
 
 Pipelines are defined under `service.pipelines` and specify the flow of telemetry data through the Collector. Each pipeline type (traces, metrics, logs) can have its own set of receivers, processors, and exporters.
