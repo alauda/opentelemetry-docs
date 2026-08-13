@@ -75,13 +75,50 @@ To attribute a metric to a specific Collector, join the metric against `target_i
 
 ```text
 otelcol_receiver_accepted_spans
-  * on (job, instance) group_left (service_name, service_version)
-  target_info
+  * on (job, instance) group_left ("service.name", "service.version")
+  target_info{endpoint="monitoring"}
 ```
 
+Two details of this query are not optional. Omitting either one produces a broken result, so both are explained below.
+
+### Always restrict `target_info` to the monitoring endpoint \{#scope-target-info}
+
 :::warning
-If you are upgrading from an earlier release, any dashboard or alerting rule that filters or groups by `service_name`, `service_instance_id`, or `service_version` directly on an `otelcol_*` metric silently stops matching. Rewrite those queries to join against `target_info` as shown above.
+Writing `target_info` on the right-hand side without a label selector makes the query fail with `many-to-many matching not allowed`.
 :::
+
+`target_info` is not specific to the Collector's internal telemetry. Every scrape target that carries OpenTelemetry resource attributes publishes a metric of that name, and the Collector's own Prometheus exporter port (`8889` in the [Configuration Example](../collector/configuration-options.mdx#configuration-example)) publishes **one `target_info` series per upstream application** it receives data from. All of those series come from a single scrape target, so they share one `job` and `instance` pair:
+
+```text
+found duplicate series for the match group {instance="10.3.6.73:8889", job="my-collector"}
+on the right hand-side of the operation: [...];
+many-to-many matching not allowed: matching labels must be unique on one side
+```
+
+Prometheus checks that the `group_left` right-hand side is unique **before** it matches anything against the left-hand side. The `otelcol_*` metrics exist only on port `8888` and never collide with these series, but the query still fails, because the duplicates are present in the right-hand side vector at all.
+
+Restricting the selector to the monitoring endpoint removes them. The Operator names the internal telemetry port `monitoring`, which Prometheus Operator copies into the `endpoint` label, so `target_info{endpoint="monitoring"}` selects exactly one series per Collector. If your Prometheus does not set an `endpoint` label, match on the job name of the monitoring service instead, which the Operator derives from the Collector name:
+
+```text
+target_info{job=~".*-collector-monitoring"}
+```
+
+### Confirm how your Prometheus spells the attribute names \{#target-info-label-names}
+
+The Collector exposes the resource attributes under their original OpenTelemetry names — `service.name`, `service.instance.id`, and `service.version`. Whether the dots survive into storage depends on the Prometheus version:
+
+| Prometheus | Stored label names | PromQL |
+| :--------- | :----------------- | :----- |
+| 3.x (UTF-8 names negotiated during the scrape) | `service.name`, `service.instance.id`, `service.version` | Must be quoted: `group_left ("service.name")` |
+| 2.x, or 3.x configured to escape names | `service_name`, `service_instance_id`, `service_version` | Written bare: `group_left (service_name)` |
+
+:::warning
+A `group_left` list that names labels which do not exist is **not** an error. The query returns results, and the identity attributes are silently absent from every series. If a join appears to succeed but adds no `service.name`, check the spelling before looking anywhere else.
+:::
+
+Query `target_info{endpoint="monitoring"}` on its own and read the label names off the result before writing the join. The examples on this page use the dotted names, which is what Alauda Container Platform stores.
+
+## Reusing the join across dashboards
 
 If rewriting every query is not practical, define a recording rule that performs the join once and query the recorded series instead:
 
@@ -92,10 +129,14 @@ groups:
       - record: otelcol:receiver_accepted_spans:with_identity
         expr: |
           otelcol_receiver_accepted_spans
-            * on (job, instance) group_left (service_name, service_version)
-            target_info
+            * on (job, instance) group_left ("service.name", "service.version")
+            target_info{endpoint="monitoring"}
 ```
 
 :::note
-The identity attributes cannot be restored on the scrape side with `metric_relabel_configs`. Relabeling rules are evaluated per sample against the labels that sample already carries, so they cannot copy `service_name` from the `target_info` series onto the `otelcol_*` series. The join must happen at query time or in a recording rule.
+The identity attributes cannot be restored on the scrape side with `metric_relabel_configs`. Relabeling rules are evaluated per sample against the labels that sample already carries, so they cannot copy `service.name` from the `target_info` series onto the `otelcol_*` series. The join must happen at query time or in a recording rule.
+:::
+
+:::warning
+If you are upgrading from an earlier release, any dashboard or alerting rule that filters or groups by `service_name`, `service_instance_id`, or `service_version` directly on an `otelcol_*` metric silently stops matching. Rewrite those queries to join against `target_info` as shown above.
 :::

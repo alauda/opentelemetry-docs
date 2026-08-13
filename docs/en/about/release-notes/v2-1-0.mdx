@@ -67,9 +67,14 @@ The following component type names are unchanged: `otlp`, `otlphttp`, `jaeger`, 
 
 ### Collector internal metrics no longer carry service identity labels
 
-The `service_name`, `service_instance_id`, and `service_version` labels have been removed from every internal metric data point exposed on port `8888`. These attributes are now present only in the `target_info` metric, which is the conventional Prometheus and OpenTelemetry representation.
+The service identity labels have been removed from every internal metric data point exposed on port `8888`. These attributes are now present only in the `target_info` metric, which is the conventional Prometheus and OpenTelemetry representation.
 
-Dashboards and alerting rules that filter or group by these labels on individual metrics must be rewritten to join against `target_info`. For details, see [Configuring the Collector Metrics](../../configuration/collector-metrics/index.mdx).
+Dashboards and alerting rules that filter or group by these labels on individual metrics must be rewritten to join against `target_info` on the `job` and `instance` labels. Two points catch out most rewrites:
+
+- The right-hand side of the join must be restricted to the monitoring endpoint, as in `target_info{endpoint="monitoring"}`. An unrestricted `target_info` also selects the series that the Collector's own Prometheus exporter port publishes for each upstream application, which share a single `job` and `instance` pair and make the query fail with `many-to-many matching not allowed`.
+- Prometheus 3.x stores the attributes under their original dotted names — `service.name`, `service.instance.id`, and `service.version` — which must be quoted in PromQL. Only Prometheus 2.x, or a 3.x instance configured to escape names, stores them as `service_name`, `service_instance_id`, and `service_version`.
+
+For the full queries, see [Configuring the Collector Metrics](../../configuration/collector-metrics/index.mdx#identifying-the-collector).
 
 ### The default `error_mode` for OTTL-based components is now `ignore`
 
