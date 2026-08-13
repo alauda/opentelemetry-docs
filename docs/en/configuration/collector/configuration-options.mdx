@@ -84,10 +84,6 @@ The following table describes the main configuration parameters used by the Oper
 The **Values** column lists representative components only. For the full set of supported components and their current type names, see [Receivers](./receivers.mdx), [Processors](./processors.mdx), [Exporters](./exporters.mdx), [Connectors](./connectors.mdx), and [Extensions](./extensions.mdx).
 
 :::note
-Routing is provided by the `routing` **connector**, not by a processor. There is no routing processor.
-:::
-
-:::note
 `resourcedetection` is shown in its original spelling on purpose. Upstream renamed it to `resource_detection`, but the Operator only generates the RBAC this processor needs under the original name. The same applies to the `k8sobjects` receiver and the `kubeletstats` receiver. See [Creating the Required RBAC Resources Automatically](../../installing/rbac-resources.mdx#component-name-spelling).
 :::
 
