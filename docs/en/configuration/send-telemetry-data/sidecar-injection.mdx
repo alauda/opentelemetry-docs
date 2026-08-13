@@ -6,6 +6,10 @@ weight: 10
 
 You can configure the Alauda build of OpenTelemetry v2 to inject the OpenTelemetry Collector as a sidecar container into your application pods. The sidecar Collector runs in the same pod as your application, enabling applications to send telemetry data to the Collector via `localhost` without complex network configuration.
 
+:::note
+The Operator does not create `Service`, `Ingress`, `NetworkPolicy`, or `HorizontalPodAutoscaler` resources for a Collector in sidecar mode, because it does not own the pod lifecycle in that mode. Applications reach the sidecar over `localhost`; if its ports must be reachable from outside the pod, expose them through the application's own `Service`.
+:::
+
 ## Prerequisites
 
 - Alauda build of OpenTelemetry v2 Operator is installed.

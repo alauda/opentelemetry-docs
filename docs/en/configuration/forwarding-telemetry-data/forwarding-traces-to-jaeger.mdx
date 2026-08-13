@@ -44,7 +44,7 @@ To send traces to a Jaeger instance, deploy an OpenTelemetry Collector in `deplo
          zipkin: {}
        processors:
          batch: {}
-         k8sattributes: {}
+         k8s_attributes: {}
          memory_limiter:
            check_interval: 1s
            limit_percentage: 80
@@ -58,7 +58,7 @@ To send traces to a Jaeger instance, deploy an OpenTelemetry Collector in `deplo
          pipelines:
            traces:
              receivers: [jaeger, otlp, zipkin] # [!code callout]
-             processors: [memory_limiter, k8sattributes, batch]
+             processors: [memory_limiter, k8s_attributes, batch]
              exporters: [otlp/traces]
    EOF
    ```

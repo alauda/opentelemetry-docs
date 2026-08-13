@@ -1,0 +1,133 @@
+---
+weight: 10000
+---
+
+# Alauda Build of OpenTelemetry v2.1.0
+
+Alauda Build of OpenTelemetry v2.1.0 is delivered through Alauda Build of OpenTelemetry v2 Operator 0.156.0 and the upstream OpenTelemetry Collector 0.158.0. It provides a comprehensive solution for deploying and managing the OpenTelemetry Collector, along with streamlined workload instrumentation for cloud-native applications on Alauda Container Platform.
+
+:::note
+Only the features documented on this site are supported. Undocumented features are currently unsupported. If you need assistance with a specific feature, contact Alauda support.
+:::
+
+## Supported Components
+
+This release includes the following OpenTelemetry Collector components:
+
+- **[Receivers](../../configuration/collector/receivers.mdx)** (14): OTLP, Jaeger, Prometheus, Prometheus Remote Write, Zipkin, Kafka, Host Metrics, Kubernetes Objects, Kubelet Stats, Kubernetes Cluster, Kubernetes Events, Filelog, Journald, and OTLP JSON File.
+- **[Processors](../../configuration/collector/processors.mdx)** (14): Batch, Memory Limiter, Resource Detection, Attributes, Resource, Span, Kubernetes Attributes, Filter, Cumulative-to-Delta, Group-by-Attributes, Transform, Tail Sampling, Probabilistic Sampling, and Metric Start Time.
+- **[Exporters](../../configuration/collector/exporters.mdx)** (8): OTLP gRPC, OTLP HTTP, Debug, Prometheus, Prometheus Remote Write, Kafka, Load Balancing, and File.
+- **[Connectors](../../configuration/collector/connectors.mdx)** (4): Count, Routing, Forward, and Spanmetrics.
+- **[Extensions](../../configuration/collector/extensions.mdx)** (8): BearerTokenAuth, OAuth2Client, File Storage, OIDC Auth, Jaeger Remote Sampling, Performance Profiler, Health Check, and zPages.
+
+## Auto-instrumentation Support
+
+Alauda Build of OpenTelemetry v2.1.0 supports [automatic instrumentation](../../configuration/instrumentation/auto-instrumentation.mdx) for six languages and runtimes, injecting the necessary libraries and configuration into application pods without requiring code changes: [Java](../../configuration/instrumentation/java-instrumentation.mdx), [Python](../../configuration/instrumentation/python-instrumentation.mdx), [Node.js](../../configuration/instrumentation/nodejs-instrumentation.mdx), [.NET](../../configuration/instrumentation/dotnet-instrumentation.mdx), [Go](../../configuration/instrumentation/go-instrumentation.mdx), and [Apache HTTP Server](../../configuration/instrumentation/apache-httpd-instrumentation.mdx).
+
+## Deployment Modes
+
+The OpenTelemetry Collector can be deployed in the following modes using the `OpenTelemetryCollector` custom resource:
+
+- **Deployment**: Standard deployment mode for centralized telemetry collection. This is the default mode.
+- **StatefulSet**: Deployment mode for workloads that require persistent state management.
+- **DaemonSet**: Deploys a Collector instance on every node for cluster-wide telemetry collection.
+- **Sidecar**: Injects a Collector container into application pods for pod-level telemetry collection.
+
+## Upgrade Notes
+
+This release moves from upstream Operator 0.147.0 and Collector 0.147.0 to Operator 0.156.0 and Collector 0.158.0. The following upstream changes can alter the behavior of an existing configuration. Review them before upgrading.
+
+### Component type names now use snake_case
+
+Upstream renamed most component type identifiers to snake_case. The previous names remain available as deprecated aliases, so existing configurations continue to work, but the Collector logs a deprecation warning on startup and upstream intends to remove the aliases in a future release. Update your `OpenTelemetryCollector` resources to the new names.
+
+| Component | Previous type name | Current type name |
+| :-------- | :----------------- | :---------------- |
+| Kubernetes Attributes processor | `k8sattributes` | `k8s_attributes` |
+| Resource Detection processor | `resourcedetection` | `resource_detection` |
+| Cumulative-to-Delta processor | `cumulativetodelta` | `cumulative_to_delta` |
+| Metric Start Time processor | `metricstarttime` | `metric_start_time` |
+| Host Metrics receiver | `hostmetrics` | `host_metrics` |
+| Filelog receiver | `filelog` | `file_log` |
+| Kubernetes Objects receiver | `k8sobjects` | `k8s_objects` |
+| Kubelet Stats receiver | `kubeletstats` | `kubelet_stats` |
+| OTLP JSON File receiver | `otlpjsonfile` | `otlp_json_file` |
+| Prometheus Remote Write receiver | `prometheusremotewrite` | `prometheus_remote_write` |
+| Prometheus Remote Write exporter | `prometheusremotewrite` | `prometheus_remote_write` |
+| Load Balancing exporter | `loadbalancing` | `load_balancing` |
+| Spanmetrics connector | `spanmetrics` | `span_metrics` |
+
+The following component type names are unchanged: `otlp`, `otlphttp`, `jaeger`, `zipkin`, `kafka`, `prometheus`, `journald`, `k8s_cluster`, `k8s_events`, `debug`, `file`, `batch`, `memory_limiter`, `attributes`, `resource`, `span`, `filter`, `transform`, `groupbyattrs`, `tail_sampling`, `probabilistic_sampler`, `count`, `routing`, `forward`, `bearertokenauth`, `oauth2client`, `file_storage`, `oidc`, `jaegerremotesampling`, `pprof`, `health_check`, and `zpages`.
+
+### Collector internal metrics no longer carry service identity labels
+
+The `service_name`, `service_instance_id`, and `service_version` labels have been removed from every internal metric data point exposed on port `8888`. These attributes are now present only in the `target_info` metric, which is the conventional Prometheus and OpenTelemetry representation.
+
+Dashboards and alerting rules that filter or group by these labels on individual metrics must be rewritten to join against `target_info`. For details, see [Configuring the Collector Metrics](../../configuration/collector-metrics/index.mdx).
+
+### The default `error_mode` for OTTL-based components is now `ignore`
+
+The Filter processor, the Transform processor, and the Routing connector previously defaulted their top-level `error_mode` to `propagate`, which aborted the pipeline when an OTTL statement failed. The default is now `ignore`, so failing statements are skipped silently and the data continues through the pipeline.
+
+If you rely on OTTL failures surfacing as pipeline errors, set `error_mode: propagate` explicitly on the affected components.
+
+### The Kafka exporter requires per-signal `topic` and `encoding`
+
+The top-level `topic` and `encoding` fields have been removed from the Kafka exporter. Move them under the corresponding signal section — `traces::topic`, `metrics::topic`, `logs::topic`, and the matching `encoding` fields. A configuration that still uses the top-level fields fails to start.
+
+### The Prometheus exporters ignore `add_metric_suffixes`
+
+The `add_metric_suffixes` setting is deprecated and is now ignored by default on the Prometheus exporter and the Prometheus Remote Write exporter. If you previously set `add_metric_suffixes: false` to suppress metric name suffixes, replace it with `translation_strategy: UnderscoreEscapingWithoutSuffixes`.
+
+### The Host Metrics receiver aggregates CPU metrics across logical CPUs
+
+The `cpu` attribute on `system.cpu.time` and `system.cpu.utilization` is now opt-in, so both metrics are aggregated across logical CPUs by default. To restore per-logical-CPU data points, enable the attribute explicitly:
+
+```yaml
+receivers:
+  host_metrics:
+    scrapers:
+      cpu:
+        metrics:
+          system.cpu.time:
+            attributes: [cpu, state]
+          system.cpu.utilization:
+            attributes: [cpu, state]
+```
+
+In addition, `system.cpu.logical.count` is now enabled by default. Set `system.cpu.logical.count.enabled: false` to disable it.
+
+### The Kubelet Stats receiver disables deprecated resource attributes
+
+The `aws.volume.id`, `fs.type`, `gce.pd.name`, `glusterfs.endpoints.name`, `glusterfs.path`, and `partition` resource attributes are deprecated and are now disabled by default. Upstream plans to remove them entirely in a future release. Enable them explicitly if your downstream pipelines still depend on them.
+
+### Sidecar mode no longer provisions Services, Ingresses, NetworkPolicies, or HPAs
+
+Because the Operator does not control the pod lifecycle in sidecar mode, it no longer creates `Service`, `Ingress`, `NetworkPolicy`, or `HorizontalPodAutoscaler` resources for Collectors deployed with `spec.mode: sidecar`. `PodMonitor` resources are still created when metrics are enabled. Expose the sidecar Collector through the application's own `Service` instead.
+
+### Automatic RBAC creation validates the requesting user's permissions
+
+When the Operator generates `ClusterRole` and `ClusterRoleBinding` resources for a Collector automatically, it now rejects the `OpenTelemetryCollector` resource if the user creating it does not hold those permissions. When the Collector reuses an existing `ServiceAccount`, only the permissions missing from that account are checked. See [Creating the Required RBAC Resources Automatically](../../installing/rbac-resources.mdx).
+
+### New `OpenTelemetryCollector` and `Instrumentation` fields
+
+- `spec.command` overrides the Collector container entrypoint.
+- `spec.hostAliases` adds entries to the pod `hosts` file for Collector and Target Allocator pods.
+- `spec.podManagementPolicy` controls the pod management policy of StatefulSet-mode Collectors.
+- `status.observedGeneration` and `status.conditions` report reconciliation state on `OpenTelemetryCollector` resources.
+- The Operator can create Gateway API `HTTPRoute` resources for a Collector.
+- `Instrumentation.spec.initContainerSecurityContext` and `Instrumentation.spec.go.securityContext` set the security context of the auto-instrumentation init containers and the Go sidecar.
+
+See [Configuration Options](../../configuration/collector/configuration-options.mdx) and [Instrumentation Options](../../configuration/instrumentation/instrumentation-options.mdx).
+
+### Other upstream changes worth reviewing
+
+The following changes affect narrower configurations. Review them if your pipelines use the components involved:
+
+- **Kubernetes Cluster receiver**: labels on Kubernetes resources emitted as entity event attributes are now prefixed per OpenTelemetry semantic conventions, for example `k8s.pod.label.<key>`.
+- **Kubernetes Attributes processor**: `deployment_name_from_replicaset` is deprecated; deployment name extraction now defaults to the ReplicaSet name heuristic.
+- **Resource Detection processor**: the `k8snode` detector is deprecated in favor of `k8s_api`. When switching, rename the configuration section as well — keeping the old key under the new detector name silently applies defaults. The per-detector `fail_on_missing_metadata` option is deprecated in favor of the top-level one.
+- **Spanmetrics connector**: a `collector.instance.id` attribute is now added to all emitted metrics, which increases series cardinality.
+- **Kafka receiver**: `group_rebalance_strategy` is deprecated in favor of `group_rebalance_strategies`. Setting both fails validation.
+- **Memory Limiter processor**: its internal metrics were renamed to carry a `memory_limiter` prefix, for example `otelcol_processor_memory_limiter_*`. Forced garbage collection now backs off when ineffective, tunable through `max_gc_interval_when_soft_limited` and `max_gc_interval_when_hard_limited`.
+- **Batch processor and exporter queue**: the histogram bucket boundaries of `otelcol_processor_batch_batch_send_size_bytes` and `otelcol_exporter_queue_batch_send_size_bytes` changed to powers of two spanning 128 B to 16 MiB. Dashboards that hard-code `le` values for these histograms need updating.

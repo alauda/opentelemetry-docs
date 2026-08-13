@@ -16,6 +16,10 @@ The Count Connector produces count-based metrics by tallying trace spans, span e
 
 The Routing Connector directs logs, metrics, and traces to designated pipelines based on resource attribute values and routing rules expressed as OpenTelemetry Transformation Language (OTTL) statements.
 
+:::warning
+The connector's `error_mode` defaults to `ignore`. When a routing condition fails to evaluate, the error is swallowed and the data falls through to the default pipeline instead of the failure being propagated. Set `error_mode: propagate` explicitly if routing errors must surface as pipeline errors.
+:::
+
 **Reference**: [Routing Connector Documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/connector/routingconnector/README.md)
 
 ## Forward Connector

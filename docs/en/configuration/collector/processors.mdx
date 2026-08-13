@@ -6,6 +6,10 @@ weight: 60
 
 Processors operate on telemetry data after it is received and before it is exported. They are optional and disabled by default. Each processor must be explicitly enabled per data source, and not every processor supports every signal type. Multiple processors can be chained for a given data source, and the order in which they execute is significant.
 
+:::warning
+Components that evaluate the OpenTelemetry Transformation Language (OTTL) — the Filter processor and the Transform processor — default their top-level `error_mode` to `ignore`. A statement that fails at runtime is skipped and the data continues through the pipeline instead of the batch being dropped. Set `error_mode: propagate` explicitly if you need OTTL failures to surface as pipeline errors.
+:::
+
 ## Batch Processor
 
 The Batch Processor groups traces and metrics into batches, reducing the number of outbound connections required to transmit telemetry data.

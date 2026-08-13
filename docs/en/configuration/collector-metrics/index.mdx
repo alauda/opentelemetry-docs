@@ -66,3 +66,38 @@ You can use the Prometheus web console to verify successful configuration:
 2. Navigate to **Status** → **Targets**.
 
 3. Check that the `ServiceMonitors` or `PodMonitors` in the `<instance_name>-collector` format have the **Up** status.
+
+## Identifying the Collector that produced a metric \{#identifying-the-collector}
+
+The Collector no longer stamps `service_name`, `service_instance_id`, and `service_version` onto every internal metric series. These attributes are exposed only through the `target_info` metric, which is the conventional Prometheus and OpenTelemetry representation of resource identity.
+
+To attribute a metric to a specific Collector, join the metric against `target_info` on the shared `job` and `instance` labels:
+
+```text
+otelcol_receiver_accepted_spans
+  * on (job, instance) group_left (service_name, service_version)
+  target_info
+```
+
+:::warning
+If you are upgrading from an earlier release, any dashboard or alerting rule that filters or groups by `service_name`, `service_instance_id`, or `service_version` directly on an `otelcol_*` metric silently stops matching. Rewrite those queries to join against `target_info` as shown above.
+:::
+
+If rewriting queries is not practical, you can restore the label names on the scrape side instead. When the internal metrics endpoint is scraped through the Prometheus receiver, map the labels back with `metric_relabel_configs`:
+
+```yaml
+receivers:
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: otel-collector
+          metric_relabel_configs:
+            - source_labels: [service_name]
+              target_label: service.name
+            - source_labels: [service_instance_id]
+              target_label: service.instance.id
+            - source_labels: [service_version]
+              target_label: service.version
+            - regex: service_name|service_instance_id|service_version
+              action: labeldrop
+```

@@ -31,6 +31,10 @@ The Collector exposes the following metrics related to data processing volume:
 - `otelcol_exporter_sent_metrics`: Number of metric data points sent by exporters
 - `otelcol_exporter_enqueue_failed_metrics`: Number of metric data points that failed to enqueue in exporters
 
+:::note
+These metrics do not carry `service_name`, `service_instance_id`, or `service_version` labels. To identify which Collector produced a series, join against `target_info`. See [Identifying the Collector that produced a metric](../configuration/collector-metrics/index.mdx#identifying-the-collector).
+:::
+
 ## Configuring metrics exposure
 
 ### Configuring the Prometheus metrics endpoint

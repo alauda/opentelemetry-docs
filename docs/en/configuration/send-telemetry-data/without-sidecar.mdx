@@ -44,7 +44,7 @@ Instead of injecting a sidecar, you can deploy the OpenTelemetry Collector as a 
          zipkin: {}
        processors:
          batch: {}
-         k8sattributes: {}
+         k8s_attributes: {}
          memory_limiter:
            check_interval: 1s
            limit_percentage: 80
@@ -58,7 +58,7 @@ Instead of injecting a sidecar, you can deploy the OpenTelemetry Collector as a 
          pipelines:
            traces:
              receivers: [jaeger, otlp, zipkin]
-             processors: [memory_limiter, k8sattributes, batch]
+             processors: [memory_limiter, k8s_attributes, batch]
              exporters: [otlp/traces]
    EOF
    ```
