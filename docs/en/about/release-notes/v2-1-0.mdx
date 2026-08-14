@@ -4,7 +4,7 @@ weight: 10000
 
 # Alauda Build of OpenTelemetry v2.1.0
 
-Alauda Build of OpenTelemetry v2.1.0 is delivered through Alauda Build of OpenTelemetry v2 Operator 0.156.0 and the upstream OpenTelemetry Collector 0.158.0. It provides a comprehensive solution for deploying and managing the OpenTelemetry Collector, along with streamlined workload instrumentation for cloud-native applications on Alauda Container Platform.
+Alauda Build of OpenTelemetry v2.1.0 is delivered through Alauda Build of OpenTelemetry v2 Operator 0.157.0 and the upstream OpenTelemetry Collector 0.158.0. It provides a comprehensive solution for deploying and managing the OpenTelemetry Collector, along with streamlined workload instrumentation for cloud-native applications on Alauda Container Platform.
 
 :::note
 Only the features documented on this site are supported. Undocumented features are currently unsupported. If you need assistance with a specific feature, contact Alauda support.
@@ -35,11 +35,11 @@ The OpenTelemetry Collector can be deployed in the following modes using the `Op
 
 ## Upgrade Notes
 
-This release moves from upstream Operator 0.147.0 and Collector 0.147.0 to Operator 0.156.0 and Collector 0.158.0. The following upstream changes can alter the behavior of an existing configuration. Review them before upgrading.
+This release moves from upstream Operator 0.147.0 and Collector 0.147.0 to Operator 0.157.0 and Collector 0.158.0. The following upstream changes can alter the behavior of an existing configuration. Review them before upgrading.
 
 ### Component type names now use snake_case \{#snake-case-names}
 
-Upstream renamed most component type identifiers to snake_case. The previous names remain available as deprecated aliases, so existing configurations continue to work, but the Collector logs a deprecation warning on startup and upstream intends to remove the aliases in a future release. Update your `OpenTelemetryCollector` resources to the new names, with the exception noted below.
+Upstream renamed most component type identifiers to snake_case. The previous names remain available as deprecated aliases, so existing configurations continue to work, but the Collector logs a deprecation warning on startup and upstream intends to remove the aliases in a future release. Update your `OpenTelemetryCollector` resources to the new names.
 
 | Component | Previous type name | Current type name |
 | :-------- | :----------------- | :---------------- |
@@ -61,12 +61,6 @@ Upstream renamed most component type identifiers to snake_case. The previous nam
 
 :::note The two OTLP exporters are renamed, the OTLP receiver is not
 `otlp` remains the correct type name for the **receiver**, which already matched the convention. Only the **exporters** are renamed, so that the transport each one uses is explicit in its name. A configuration that keeps `otlp` under `receivers` and uses `otlp_grpc` under `exporters` is correct and produces no warning.
-:::
-
-:::warning Components that drive automatic RBAC generation are an exception
-The Operator matches component type names literally when it decides which RBAC to generate, and it has not yet been updated for all of the new names. Keep configuring the Kubernetes Objects receiver as `k8sobjects`, the Kubelet Stats receiver as `kubeletstats`, and the Resource Detection processor as `resourcedetection`. Under their snake_case names, the Operator generates no `ClusterRole` for these components and the Collector fails at runtime with permission errors; `kubelet_stats` additionally loses the injected `K8S_NODE_NAME` environment variable.
-
-The Kubernetes Attributes processor is safe to rename — the Operator recognizes both `k8sattributes` and `k8s_attributes`. See [Creating the Required RBAC Resources Automatically](../../installing/rbac-resources.mdx#component-name-spelling).
 :::
 
 The following component type names are unchanged: `otlp` (receiver), `jaeger`, `zipkin`, `kafka`, `prometheus`, `journald`, `k8s_cluster`, `k8s_events`, `debug`, `file`, `batch`, `memory_limiter`, `attributes`, `resource`, `span`, `filter`, `transform`, `groupbyattrs`, `tail_sampling`, `probabilistic_sampler`, `count`, `routing`, `forward`, `bearertokenauth`, `oauth2client`, `file_storage`, `oidc`, `jaegerremotesampling`, `pprof`, `health_check`, and `zpages`.

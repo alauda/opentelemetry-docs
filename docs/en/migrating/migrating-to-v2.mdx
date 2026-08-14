@@ -4,7 +4,7 @@ weight: 10
 
 # Migrating from Alauda Build of OpenTelemetry to Alauda Build of OpenTelemetry v2
 
-This document describes how to migrate an existing `Alauda Build of OpenTelemetry` (built on upstream OpenTelemetry Operator/Collector `0.108.0`) deployment to `Alauda Build of OpenTelemetry v2` (built on upstream Operator `0.156.0` and Collector `0.158.0`).
+This document describes how to migrate an existing `Alauda Build of OpenTelemetry` (built on upstream OpenTelemetry Operator/Collector `0.108.0`) deployment to `Alauda Build of OpenTelemetry v2` (built on upstream Operator `0.157.0` and Collector `0.158.0`).
 
 The two distributions are delivered through different OLM packages — `opentelemetry-operator` and `opentelemetry-operator2` — but they own the same Custom Resource Definitions (`OpenTelemetryCollector` and `Instrumentation`). OLM does not allow two Operators to own the same CRDs simultaneously, therefore the migration must be performed as **uninstall v1 → install v2**, not as a side-by-side upgrade.
 
@@ -14,7 +14,7 @@ The two distributions are delivered through different OLM packages — `opentele
 
 | Item | v1 | v2 |
 | :--- | :--- | :--- |
-| Upstream OpenTelemetry Operator version | 0.108.0 | 0.156.0 |
+| Upstream OpenTelemetry Operator version | 0.108.0 | 0.157.0 |
 | Upstream OpenTelemetry Collector version | 0.108.0 | 0.158.0 |
 | OLM package / Subscription name | `opentelemetry-operator` | `opentelemetry-operator2` |
 | Recommended Operator namespace | `opentelemetry-operator` | `opentelemetry-operator2` |
@@ -136,7 +136,7 @@ The OpenTelemetry Java agent has moved from the `1.x` series to the `2.x` series
 Alauda Build of OpenTelemetry v2 supports the components listed in the [v2.1.0 Release Notes](../about/release-notes/v2-1-0.mdx). Review every `receiver`, `processor`, `exporter`, `connector`, and `extension` referenced in your existing `OpenTelemetryCollector` resources and confirm that:
 
 - Each component is included in the v2 supported component lists.
-- The component type names match the current upstream spelling. Most component types were renamed to snake_case across the upstream release range — for example `k8sattributes` became `k8s_attributes`. The previous names still work as deprecated aliases, but the [v2.1.0 Release Notes](../about/release-notes/v2-1-0.mdx) list the current spelling for each component. Keep `k8sobjects`, `kubeletstats`, and `resourcedetection` in their original spelling, because the Operator only generates the RBAC these components need under those names.
+- The component type names match the current upstream spelling. Most component types were renamed to snake_case across the upstream release range — for example `k8sattributes` became `k8s_attributes`. The previous names still work as deprecated aliases, but the [v2.1.0 Release Notes](../about/release-notes/v2-1-0.mdx) list the current spelling for each component.
 - The configuration syntax matches the upstream Collector `0.158.0` schema. Some fields have changed across the upstream release range. For example, the `spec.config.service.telemetry.metrics` configuration shape differs between the two versions, and the Kafka exporter no longer accepts top-level `topic` and `encoding` fields.
 
 If you have a staging environment, applying your v1 configuration to a freshly installed v2 Operator there is a good way to surface incompatibilities before the production migration.
@@ -306,7 +306,7 @@ When you rebuild the `OpenTelemetryCollector` manifests from your v1 backup, the
 
 - **Server-managed metadata**. Fields written by the API server (`metadata.creationTimestamp`, `metadata.resourceVersion`, `metadata.uid`, `metadata.generation`, `metadata.managedFields`, `metadata.finalizers`, the `kubectl.kubernetes.io/last-applied-configuration` annotation, and `status`) cannot be reused on create and must be stripped from the backup.
 
-- **Operator-managed RBAC and Prometheus scraping**. The v2 Operator automatically creates the `ServiceAccount` and `ClusterRoleBinding` resources required by the Collector. Drop the v1 `spec.serviceAccount` field from the backup so the Operator can provision a fresh ServiceAccount with the correct permissions; you generally do not have to recreate the v1 RBAC resources by hand. To have the Operator also create a `ServiceMonitor` for the internal Prometheus endpoint, set `spec.observability.metrics.enableMetrics: true` and add a discovery label (such as `prometheus: kube-prometheus`) to `metadata.labels` so that your Prometheus Operator instance picks the resource up. If a Collector component requires additional cluster-level RBAC (for example, the `k8sattributes` processor or the `k8sobjects` receiver), follow [Creating the Required RBAC Resources Automatically](../installing/rbac-resources.mdx). Note that the v2 Operator also verifies that the user creating the `OpenTelemetryCollector` holds the permissions being generated, so perform the migration as a user with sufficient privileges.
+- **Operator-managed RBAC and Prometheus scraping**. The v2 Operator automatically creates the `ServiceAccount` and `ClusterRoleBinding` resources required by the Collector. Drop the v1 `spec.serviceAccount` field from the backup so the Operator can provision a fresh ServiceAccount with the correct permissions; you generally do not have to recreate the v1 RBAC resources by hand. To have the Operator also create a `ServiceMonitor` for the internal Prometheus endpoint, set `spec.observability.metrics.enableMetrics: true` and add a discovery label (such as `prometheus: kube-prometheus`) to `metadata.labels` so that your Prometheus Operator instance picks the resource up. If a Collector component requires additional cluster-level RBAC (for example, the `k8s_attributes` processor or the `k8s_objects` receiver), follow [Creating the Required RBAC Resources Automatically](../installing/rbac-resources.mdx). Note that the v2 Operator also verifies that the user creating the `OpenTelemetryCollector` holds the permissions being generated, so perform the migration as a user with sufficient privileges.
 
 #### Migration procedure \{#collector-migration-procedure}
 
