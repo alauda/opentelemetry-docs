@@ -124,8 +124,8 @@ In v1, Alauda ships a customized Java auto-instrumentation image with the Operat
 
 | Option | When to use | Example |
 | :--- | :--- | :--- |
-| Upstream community image | Cluster has access to public registries | `ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:2.29.0` |
-| Self-built or mirrored image | Air-gapped clusters, or environments with image supply-chain compliance requirements | `registry.example.com/otel/autoinstrumentation-java:2.29.0` |
+| Upstream community image | Cluster has access to public registries | `ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:2.30.0` |
+| Self-built or mirrored image | Air-gapped clusters, or environments with image supply-chain compliance requirements | `registry.example.com/otel/autoinstrumentation-java:2.30.0` |
 
 :::note
 The OpenTelemetry Java agent has moved from the `1.x` series to the `2.x` series. Some auto-generated metric names and attributes are different from what v1 produced. If your dashboards or alerts depend on specific metric names, review the changes in the upstream Java agent release notes and update them accordingly.
@@ -380,7 +380,7 @@ Use the same working directory created in the previous step. The following examp
 
 ```bash {name=migrate:create-v2-instrumentation-from-backup}
 RESTORE_DIR=./otel-v2-restore
-JAVA_AUTO_INSTRUMENTATION_IMAGE="ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:2.29.0"
+JAVA_AUTO_INSTRUMENTATION_IMAGE="ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:2.30.0"
 
 mkdir -p "$RESTORE_DIR"
 cp ./otel-v1-backup/instrumentations.yaml "$RESTORE_DIR/instrumentations.yaml"
