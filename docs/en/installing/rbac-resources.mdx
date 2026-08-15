@@ -85,3 +85,20 @@ If creating a Collector fails with a permissions error even though the Operator 
     ```bash {name=rbac:restart-operator}
     kubectl delete pod -n opentelemetry-operator2 -l app.kubernetes.io/name=opentelemetry-operator
     ```
+
+## Removing the RBAC resources
+
+When you no longer need the Operator to create cluster-level RBAC resources automatically, remove the `ClusterRole` and `ClusterRoleBinding` created in the [Procedure](#procedure) section to release the granted permissions.
+
+:::warning
+Delete the `OpenTelemetryCollector` resources that rely on automatic RBAC creation **before** you remove these permissions. Once the Operator loses the permissions, it can no longer reclaim the cluster-level RBAC resources it generated for those Collectors, and those resources are left behind in the cluster.
+:::
+
+**Procedure**
+
+Execute the following commands to remove the RBAC resources:
+
+```bash {name=rbac:cleanup}
+kubectl delete clusterrolebinding generate-processors-rbac --ignore-not-found
+kubectl delete clusterrole generate-processors-rbac --ignore-not-found
+```

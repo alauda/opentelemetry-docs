@@ -17,7 +17,7 @@ Instead of injecting a sidecar, you can deploy the OpenTelemetry Collector as a 
 
 1. Deploy the OpenTelemetry Collector instance with the `deployment` mode by running the following command:
 
-   ```yaml
+   ```yaml {name=no-sidecar:deploy-collector}
    kubectl apply -f - <<EOF
    apiVersion: opentelemetry.io/v1beta1
    kind: OpenTelemetryCollector
@@ -71,7 +71,7 @@ Instead of injecting a sidecar, you can deploy the OpenTelemetry Collector as a 
 
 2. Set the environment variables in the container with your instrumented application to send telemetry data to the Collector:
 
-   ```bash
+   ```yaml
    kubectl apply -f - <<EOF
    apiVersion: apps/v1
    kind: Deployment
