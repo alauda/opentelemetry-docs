@@ -4,7 +4,7 @@ weight: 10
 
 # Migrating from Alauda Build of OpenTelemetry to Alauda Build of OpenTelemetry v2
 
-This document describes how to migrate an existing `Alauda Build of OpenTelemetry` (built on upstream OpenTelemetry Operator/Collector `0.108.0`) deployment to `Alauda Build of OpenTelemetry v2` (built on upstream `0.147.0`).
+This document describes how to migrate an existing `Alauda Build of OpenTelemetry` (built on upstream OpenTelemetry Operator/Collector `0.108.0`) deployment to `Alauda Build of OpenTelemetry v2` (built on upstream Operator `0.157.0` and Collector `0.158.0`).
 
 The two distributions are delivered through different OLM packages — `opentelemetry-operator` and `opentelemetry-operator2` — but they own the same Custom Resource Definitions (`OpenTelemetryCollector` and `Instrumentation`). OLM does not allow two Operators to own the same CRDs simultaneously, therefore the migration must be performed as **uninstall v1 → install v2**, not as a side-by-side upgrade.
 
@@ -14,7 +14,8 @@ The two distributions are delivered through different OLM packages — `opentele
 
 | Item | v1 | v2 |
 | :--- | :--- | :--- |
-| OpenTelemetry Operator/Collector version | 0.108.0 | 0.147.0 |
+| Upstream OpenTelemetry Operator version | 0.108.0 | 0.157.0 |
+| Upstream OpenTelemetry Collector version | 0.108.0 | 0.158.0 |
 | OLM package / Subscription name | `opentelemetry-operator` | `opentelemetry-operator2` |
 | Recommended Operator namespace | `opentelemetry-operator` | `opentelemetry-operator2` |
 | Default subscription channel | `alpha` | `stable` |
@@ -123,8 +124,8 @@ In v1, Alauda ships a customized Java auto-instrumentation image with the Operat
 
 | Option | When to use | Example |
 | :--- | :--- | :--- |
-| Upstream community image | Cluster has access to public registries | `ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:2.26.1` |
-| Self-built or mirrored image | Air-gapped clusters, or environments with image supply-chain compliance requirements | `registry.example.com/otel/autoinstrumentation-java:2.26.1` |
+| Upstream community image | Cluster has access to public registries | `ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:2.30.0` |
+| Self-built or mirrored image | Air-gapped clusters, or environments with image supply-chain compliance requirements | `registry.example.com/otel/autoinstrumentation-java:2.30.0` |
 
 :::note
 The OpenTelemetry Java agent has moved from the `1.x` series to the `2.x` series. Some auto-generated metric names and attributes are different from what v1 produced. If your dashboards or alerts depend on specific metric names, review the changes in the upstream Java agent release notes and update them accordingly.
@@ -132,10 +133,11 @@ The OpenTelemetry Java agent has moved from the `1.x` series to the `2.x` series
 
 ### Check Collector configuration compatibility
 
-Alauda Build of OpenTelemetry v2 supports the components listed in the [v2.0.0 Release Notes](../about/release-notes/v2-0-0.mdx). Review every `receiver`, `processor`, `exporter`, `connector`, and `extension` referenced in your existing `OpenTelemetryCollector` resources and confirm that:
+Alauda Build of OpenTelemetry v2 supports the components listed in the [v2.1.0 Release Notes](../about/release-notes/v2-1-0.mdx). Review every `receiver`, `processor`, `exporter`, `connector`, and `extension` referenced in your existing `OpenTelemetryCollector` resources and confirm that:
 
 - Each component is included in the v2 supported component lists.
-- The configuration syntax matches the upstream `0.147.0` schema. Some fields have changed across the upstream release range. For example, the `spec.config.service.telemetry.metrics` configuration shape differs between the two versions.
+- The component type names match the current upstream spelling. Most component types were renamed to snake_case across the upstream release range — for example `k8sattributes` became `k8s_attributes`. The previous names still work as deprecated aliases, but the [v2.1.0 Release Notes](../about/release-notes/v2-1-0.mdx) list the current spelling for each component.
+- The configuration syntax matches the upstream Collector `0.158.0` schema. Some fields have changed across the upstream release range. For example, the `spec.config.service.telemetry.metrics` configuration shape differs between the two versions, and the Kafka exporter no longer accepts top-level `topic` and `encoding` fields.
 
 If you have a staging environment, applying your v1 configuration to a freshly installed v2 Operator there is a good way to surface incompatibilities before the production migration.
 
@@ -248,7 +250,7 @@ Follow [Installing the Alauda Build of OpenTelemetry v2 Operator](../installing/
       name: opentelemetry-operator2
       source: platform
       sourceNamespace: cpaas-system
-      # startingCSV example: opentelemetry-operator2.v0.147.0-r0
+      # startingCSV example: opentelemetry-operator2.v0.157.0-rc.2
       startingCSV: {step-1-operator-csv-version}
     EOF
     ```
@@ -304,7 +306,7 @@ When you rebuild the `OpenTelemetryCollector` manifests from your v1 backup, the
 
 - **Server-managed metadata**. Fields written by the API server (`metadata.creationTimestamp`, `metadata.resourceVersion`, `metadata.uid`, `metadata.generation`, `metadata.managedFields`, `metadata.finalizers`, the `kubectl.kubernetes.io/last-applied-configuration` annotation, and `status`) cannot be reused on create and must be stripped from the backup.
 
-- **Operator-managed RBAC and Prometheus scraping**. The v2 Operator automatically creates the `ServiceAccount` and `ClusterRoleBinding` resources required by the Collector. Drop the v1 `spec.serviceAccount` field from the backup so the Operator can provision a fresh ServiceAccount with the correct permissions; you generally do not have to recreate the v1 RBAC resources by hand. To have the Operator also create a `ServiceMonitor` for the internal Prometheus endpoint, set `spec.observability.metrics.enableMetrics: true` and add a discovery label (such as `prometheus: kube-prometheus`) to `metadata.labels` so that your Prometheus Operator instance picks the resource up. If a Collector component requires additional cluster-level RBAC (for example, the `k8sattributes` processor or the `k8sobjects` receiver), follow [Creating the Required RBAC Resources Automatically](../installing/rbac-resources.mdx).
+- **Operator-managed RBAC and Prometheus scraping**. The v2 Operator automatically creates the `ServiceAccount` and `ClusterRoleBinding` resources required by the Collector. Drop the v1 `spec.serviceAccount` field from the backup so the Operator can provision a fresh ServiceAccount with the correct permissions; you generally do not have to recreate the v1 RBAC resources by hand. To have the Operator also create a `ServiceMonitor` for the internal Prometheus endpoint, set `spec.observability.metrics.enableMetrics: true` and add a discovery label (such as `prometheus: kube-prometheus`) to `metadata.labels` so that your Prometheus Operator instance picks the resource up. If a Collector component requires additional cluster-level RBAC (for example, the `k8s_attributes` processor or the `k8s_objects` receiver), follow [Creating the Required RBAC Resources Automatically](../installing/rbac-resources.mdx). Note that the v2 Operator also verifies that the user creating the `OpenTelemetryCollector` holds the permissions being generated, so perform the migration as a user with sufficient privileges.
 
 #### Migration procedure \{#collector-migration-procedure}
 
@@ -346,10 +348,7 @@ When you rebuild the `OpenTelemetryCollector` manifests from your v1 backup, the
                           exporter: {
                             prometheus: {
                               host: "0.0.0.0",
-                              port: 8888,
-                              without_scope_info: true,
-                              without_type_suffix: true,
-                              without_units: true
+                              port: 8888
                             }
                           }
                         }
@@ -381,7 +380,7 @@ Use the same working directory created in the previous step. The following examp
 
 ```bash {name=migrate:create-v2-instrumentation-from-backup}
 RESTORE_DIR=./otel-v2-restore
-JAVA_AUTO_INSTRUMENTATION_IMAGE="ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:2.26.1"
+JAVA_AUTO_INSTRUMENTATION_IMAGE="ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:2.30.0"
 
 mkdir -p "$RESTORE_DIR"
 cp ./otel-v1-backup/instrumentations.yaml "$RESTORE_DIR/instrumentations.yaml"
@@ -548,7 +547,7 @@ Restart the workloads with `kubectl rollout restart` so that the v1 mutating web
 | Symptom | Likely cause | Resolution |
 | :--- | :--- | :--- |
 | OLM rejects the v2 Operator installation with a CRD owner conflict | A v1 `ClusterServiceVersion` still exists in the cluster | Wait for `kubectl get csv -A \| grep '^opentelemetry-operator '` to be empty; manually delete any remaining v1 CSVs |
-| The v2 Collector pod is stuck in `CrashLoopBackOff` | The Collector configuration uses a component that v2 does not support, or a field whose schema changed in `0.147.0` | Inspect the Collector pod logs; cross-check every component against the [v2.0.0 Release Notes](../about/release-notes/v2-0-0.mdx) and update or remove unsupported items |
+| The v2 Collector pod is stuck in `CrashLoopBackOff` | The Collector configuration uses a component that v2 does not support, or a field whose schema changed in Collector `0.158.0` | Inspect the Collector pod logs; cross-check every component against the [v2.1.0 Release Notes](../about/release-notes/v2-1-0.mdx) and update or remove unsupported items |
 | Application pods restart but no init container is injected | The mutating webhook is not ready, the `Instrumentation` resource is missing, or the pod annotation references the wrong `Instrumentation` | Check `kubectl get mutatingwebhookconfigurations`, confirm the `Instrumentation` exists in the expected namespace, and verify the value of `instrumentation.opentelemetry.io/inject-java` |
 | Application pods start but no traces are produced | The `OTEL_EXPORTER_OTLP_ENDPOINT` is wrong, the Collector is not ready, or network policies block ports `4317` / `4318` | Test connectivity from inside the pod (for example, `nc -vz <collector-svc> 4318`); review NetworkPolicy resources; check the Collector pod logs |
 

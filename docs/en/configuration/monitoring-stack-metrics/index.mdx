@@ -46,9 +46,6 @@ spec:
                 prometheus:
                   host: 0.0.0.0
                   port: 8888
-                  without_scope_info: true
-                  without_type_suffix: true
-                  without_units: true
       pipelines:
         metrics:
           exporters: [prometheus]
@@ -64,6 +61,10 @@ Turning on `enableMetrics` results in two separate `ServiceMonitor` resources be
 
 - A `ServiceMonitor` targeting the `<instance_name>-collector-monitoring` service, which collects the Collector's own internal operational metrics.
 - A `ServiceMonitor` targeting the `<instance_name>-collector` service, which collects metrics published by any Prometheus exporter configured in the pipeline.
+:::
+
+:::warning
+The Collector's internal metrics no longer carry `service_name`, `service_instance_id`, or `service_version` labels; that identity is published through the `target_info` metric instead. Queries that group or filter on those labels must join against `target_info`. See [Identifying the Collector that produced a metric](../collector-metrics/index.mdx#identifying-the-collector).
 :::
 
 ### Using a Custom PodMonitor

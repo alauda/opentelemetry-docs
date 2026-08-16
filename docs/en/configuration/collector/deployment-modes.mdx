@@ -26,6 +26,10 @@ The Sidecar deployment mode injects the Collector directly into application pods
 
 2. **Localhost telemetry forwarding**: When applications send telemetry data via `localhost`, the sidecar Collector can receive this data and forward it to external services through encrypted and authenticated connections.
 
+:::note
+In sidecar mode the Operator does not own the pod lifecycle, so it does **not** create `Service`, `Ingress`, `NetworkPolicy`, or `HorizontalPodAutoscaler` resources for the Collector. Expose the sidecar through the application's own `Service` when its ports need to be reachable from outside the pod. `PodMonitor` resources are still created when `spec.observability.metrics.enableMetrics` is enabled.
+:::
+
 ### Sidecar Injection Configuration
 
 :::note

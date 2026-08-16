@@ -4,7 +4,7 @@ weight: 30
 
 # Creating the Required RBAC Resources Automatically
 
-The Alauda Build of OpenTelemetry v2 Operator automatically creates the necessary cluster-level RBAC resources when certain Collector components require access to Kubernetes resources across the cluster. For some components, such as the `k8sattributes` processor or the `k8sobjects` receiver, additional RBAC permissions are needed beyond the default Operator scope.
+The Alauda Build of OpenTelemetry v2 Operator automatically creates the necessary cluster-level RBAC resources when certain Collector components require access to Kubernetes resources across the cluster. For some components, such as the `k8s_attributes` processor or the `k8s_objects` receiver, additional RBAC permissions are needed beyond the default Operator scope.
 
 ## Automatic RBAC creation
 
@@ -16,10 +16,19 @@ To enable the automatic RBAC creation capability, you must complete the steps in
 
 The following are examples of components that typically require additional RBAC permissions:
 
-* **k8sattributes processor**: Requires permissions to query Pod, Namespace, Node, ReplicaSet, and Deployment resources for enriching telemetry data with Kubernetes metadata.
-* **k8sobjects receiver**: Requires permissions to watch and list Kubernetes resources such as Events, Pods, and Nodes.
-* **kubeletstats receiver**: Requires permissions to access kubelet endpoints for node and pod metrics.
-* **resourcedetection processor**: Requires permissions to access Node resources for resource detection.
+* **`k8s_attributes` processor**: Requires permissions to query Pod, Namespace, Node, ReplicaSet, and Deployment resources for enriching telemetry data with Kubernetes metadata.
+* **`k8s_objects` receiver**: Requires permissions to watch and list Kubernetes resources such as Events, Pods, and Nodes.
+* **`kubelet_stats` receiver**: Requires permissions to access kubelet endpoints for node and pod metrics.
+* **`resource_detection` processor**: Requires permissions to access Node resources for resource detection.
+
+### Permissions required of the user creating the Collector
+
+Automatic RBAC creation is subject to a privilege escalation check. When the Operator would generate a `ClusterRole` for an `OpenTelemetryCollector` resource, it verifies that the user submitting the resource also holds the permissions being granted. If the user does not hold them, the resource is **rejected** by the admission webhook.
+
+- When the Collector uses a `ServiceAccount` created by the Operator, the full set of generated permissions is checked against the submitting user.
+- When the Collector reuses an existing `ServiceAccount` through `spec.serviceAccount`, only the permissions that account is missing are checked.
+
+If creating a Collector fails with a permissions error even though the Operator itself is correctly authorized, grant the submitting user the same permissions the Collector needs, or have a user who already holds them create the resource.
 
 ### Procedure \{#procedure}
 
@@ -76,3 +85,20 @@ The following are examples of components that typically require additional RBAC 
     ```bash {name=rbac:restart-operator}
     kubectl delete pod -n opentelemetry-operator2 -l app.kubernetes.io/name=opentelemetry-operator
     ```
+
+## Removing the RBAC resources
+
+When you no longer need the Operator to create cluster-level RBAC resources automatically, remove the `ClusterRole` and `ClusterRoleBinding` created in the [Procedure](#procedure) section to release the granted permissions.
+
+:::warning
+Delete the `OpenTelemetryCollector` resources that rely on automatic RBAC creation **before** you remove these permissions. Once the Operator loses the permissions, it can no longer reclaim the cluster-level RBAC resources it generated for those Collectors, and those resources are left behind in the cluster.
+:::
+
+**Procedure**
+
+Execute the following commands to remove the RBAC resources:
+
+```bash {name=rbac:cleanup}
+kubectl delete clusterrolebinding generate-processors-rbac --ignore-not-found
+kubectl delete clusterrole generate-processors-rbac --ignore-not-found
+```

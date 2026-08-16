@@ -66,6 +66,7 @@ The following table describes the parameters that can be configured in the `Inst
 | `propagators` | Inter-process context propagation configuration. | `tracecontext`, `baggage`, `b3`, `b3multi`, `jaeger`, `ottrace`, `none` |
 | `resource` | Resource attributes configuration for telemetry identification. | |
 | `sampler` | Sampling configuration to control telemetry data volume. | |
+| `initContainerSecurityContext` | Security context applied to the auto-instrumentation init containers. | |
 | `apacheHttpd` | Apache HTTP Server instrumentation settings. | |
 | `dotnet` | .NET instrumentation settings. | |
 | `go` | Go instrumentation settings. | |
@@ -166,6 +167,47 @@ spec:
       cpu: 100m
       memory: 64Mi
 ```
+
+## Security Context Configuration
+
+By default, the auto-instrumentation init containers inherit the security context of the first application container being instrumented, and the Go sidecar keeps the settings that eBPF requires (`privileged: true` and `runAsUser: 0`). In clusters that enforce restricted Pod Security Admission, inheriting a context is not always sufficient — you may need to declare capabilities explicitly.
+
+Use `spec.initContainerSecurityContext` to set the security context of the init containers injected for Java, Node.js, Python, .NET, Apache HTTP Server, and Nginx:
+
+```yaml
+spec:
+  initContainerSecurityContext: # [!code callout]
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    runAsUser: 1000
+    capabilities:
+      drop:
+        - ALL
+    seccompProfile:
+      type: RuntimeDefault
+```
+
+<Callouts>
+1. Applies to every language init container. When unset, each init container inherits the security context of the application container it instruments.
+</Callouts>
+
+Use `spec.go.securityContext` to override the defaults of the Go instrumentation sidecar:
+
+```yaml
+spec:
+  go:
+    securityContext: # [!code callout]
+      privileged: true
+      runAsUser: 0
+```
+
+<Callouts>
+1. Overrides the Go sidecar defaults. The Go auto-instrumentation relies on eBPF, so removing the elevated privileges shown here generally prevents it from attaching to the application process.
+</Callouts>
+
+:::warning
+Only override `spec.go.securityContext` if you know the resulting context still satisfies the eBPF requirements of the Go instrumentation. Leaving the field unset keeps the defaults that the Go sidecar needs to attach to the application process.
+:::
 
 ## Environment Variable Injection
 

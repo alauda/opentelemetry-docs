@@ -8,13 +8,17 @@ Exporters deliver telemetry data to one or more backend destinations. They can o
 
 ## OTLP gRPC Exporter
 
-The OTLP gRPC Exporter sends traces and metrics over the OpenTelemetry Protocol (OTLP) using gRPC transport.
+The OTLP gRPC Exporter sends traces and metrics over the OpenTelemetry Protocol (OTLP) using gRPC transport. Its type name is `otlp_grpc`. The former name `otlp` still works as a deprecated alias, but it is reported at startup and will be removed upstream.
 
-**Reference**: [OTLP Exporter Documentation](https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/otlpexporter/README.md)
+**Reference**: [OTLP gRPC Exporter Documentation](https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/otlpexporter/README.md)
+
+:::note
+The rename affects the exporter only. Under `receivers`, the OTLP receiver keeps the type name `otlp`. See [Component type names](./configuration-options.mdx#component-type-names).
+:::
 
 ## OTLP HTTP Exporter
 
-The OTLP HTTP Exporter sends traces and metrics over the OpenTelemetry Protocol (OTLP) using HTTP transport.
+The OTLP HTTP Exporter sends traces and metrics over the OpenTelemetry Protocol (OTLP) using HTTP transport. Its type name is `otlp_http`. The former name `otlphttp` still works as a deprecated alias.
 
 **Reference**: [OTLP HTTP Exporter Documentation](https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/otlphttpexporter/README.md)
 

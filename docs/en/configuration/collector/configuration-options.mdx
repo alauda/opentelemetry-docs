@@ -20,7 +20,7 @@ You can define multiple instances of each component type within a custom resourc
 As a best practice, only enable the components you actually need. This reduces resource consumption and simplifies troubleshooting.
 :::
 
-## Configuration Example
+## Configuration Example \{#configuration-example}
 
 The following example demonstrates a basic OpenTelemetry Collector configuration with OTLP receivers and multiple exporters:
 
@@ -44,7 +44,7 @@ spec:
           http: {}
     processors: {}
     exporters:
-      otlp:
+      otlp_grpc: # [!code callout]
         endpoint: otel-collector-headless.tracing-system.svc:4317
         tls:
           ca_file: "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
@@ -57,7 +57,7 @@ spec:
         traces:
           receivers: [otlp]
           processors: []
-          exporters: [otlp]
+          exporters: [otlp_grpc]
         metrics:
           receivers: [otlp]
           processors: []
@@ -65,8 +65,27 @@ spec:
 ```
 
 <Callouts>
-1. Components defined in the configuration but not referenced in the `service.pipelines` section remain inactive. A component must be added to at least one pipeline to function.
+1. The OTLP **exporter** is named `otlp_grpc`, while the OTLP **receiver** above keeps the name `otlp`. See [Component type names](#component-type-names).
+2. Components defined in the configuration but not referenced in the `service.pipelines` section remain inactive. A component must be added to at least one pipeline to function.
 </Callouts>
+
+## Component type names \{#component-type-names}
+
+Upstream renamed most component type identifiers to snake_case, and renamed the two OTLP exporters so that the transport is explicit in the name:
+
+| Component | Deprecated type name | Current type name |
+| :-------- | :------------------- | :---------------- |
+| OTLP gRPC exporter | `otlp` | `otlp_grpc` |
+| OTLP HTTP exporter | `otlphttp` | `otlp_http` |
+
+The deprecated names still work, so existing configurations keep running, but the Collector logs a warning for each affected component instance and upstream intends to remove the aliases in a future release:
+
+```text
+warn  builders/builders.go:40  "otlp" alias is deprecated; use "otlp_grpc" instead
+  {"otelcol.component.id": "otlp/traces", "otelcol.component.kind": "exporter", "otelcol.signal": "traces"}
+```
+
+For the full list of renamed components, see the [v2.1.0 Release Notes](../../about/release-notes/v2-1-0.mdx#snake-case-names).
 
 ## Configuration Parameters
 
@@ -75,11 +94,13 @@ The following table describes the main configuration parameters used by the Oper
 | Parameter | Description | Values | Default |
 |-----------|-------------|-------------------|---------|
 | `receivers` | Defines how data enters the Collector. At least one receiver must be enabled in a pipeline for valid configuration. | otlp, jaeger, prometheus, zipkin, kafka | None |
-| `processors` | Defines data transformation operations applied between receiving and exporting. Processors are optional. | batch, memory_limiter, resourcedetection, attributes, span, k8sattributes, filter, routing | None |
-| `exporters` | Defines destinations for processed data. At least one exporter must be enabled in a pipeline for valid configuration. | otlp, otlphttp, debug, prometheus, kafka | None |
-| `connectors` | Defines components that join pipeline pairs by consuming data as exporters and emitting data as receivers. | spanmetrics, count, routing, forward | None |
-| `extensions` | Defines optional components for auxiliary tasks that don't involve telemetry data processing. | bearertokenauth, oauth2client, pprof, health_check, memory_ballast, zpages | None |
+| `processors` | Defines data transformation operations applied between receiving and exporting. Processors are optional. | batch, memory_limiter, resource_detection, attributes, span, k8s_attributes, filter | None |
+| `exporters` | Defines destinations for processed data. At least one exporter must be enabled in a pipeline for valid configuration. | otlp_grpc, otlp_http, debug, prometheus, kafka | None |
+| `connectors` | Defines components that join pipeline pairs by consuming data as exporters and emitting data as receivers. | span_metrics, count, routing, forward | None |
+| `extensions` | Defines optional components for auxiliary tasks that don't involve telemetry data processing. | bearertokenauth, oauth2client, pprof, health_check, zpages | None |
 | `service.pipelines` | Enables components by adding them to pipelines. Components must be listed here to become active. | N/A | None |
+
+The **Values** column lists representative components only. For the full set of supported components and their current type names, see [Receivers](./receivers.mdx), [Processors](./processors.mdx), [Exporters](./exporters.mdx), [Connectors](./connectors.mdx), and [Extensions](./extensions.mdx).
 
 ## Pipeline Configuration
 
@@ -93,7 +114,7 @@ service:
     traces:
       receivers: [otlp, jaeger]
       processors: [batch, memory_limiter]
-      exporters: [otlp, debug]
+      exporters: [otlp_grpc, debug]
     metrics:
       receivers: [otlp, prometheus]
       processors: [batch]
@@ -101,7 +122,95 @@ service:
     logs:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlp]
+      exporters: [otlp_grpc]
 ```
 
 Each pipeline independently processes its telemetry type, allowing you to configure different processing logic for traces, metrics, and logs based on your observability requirements.
+
+## Collector Resource Options
+
+The fields above live under `spec.config` and configure the Collector process itself. The `OpenTelemetryCollector` custom resource also exposes fields that control how the Operator deploys the Collector workload.
+
+| Field | Description |
+| :---- | :---------- |
+| `spec.command` | Overrides the entrypoint of the Collector container, with the same semantics as `Pod.spec.containers[].command`. Accepts a string array. When omitted, the image `ENTRYPOINT` is used. |
+| `spec.hostAliases` | Adds entries to the pod `hosts` file, mirroring `Pod.spec.hostAliases`. Useful when a Collector must resolve a backend hostname that cluster DNS does not serve. |
+| `spec.podManagementPolicy` | Sets the pod creation and termination order of the underlying StatefulSet. Applies only when `spec.mode` is `statefulset`. Defaults to `Parallel`. |
+| `spec.sessionAffinity` | Sets the session affinity of every Service the Operator creates for the Collector, mirroring `Service.spec.sessionAffinity`. Accepts `ClientIP`, which routes all requests from the same client IP to the same Collector replica, or `None`. Defaults to `None`. Has no effect in `sidecar` mode, which creates no Service. |
+| `spec.sessionAffinityConfig.clientIP.timeoutSeconds` | Sets how long a `ClientIP` affinity entry is retained, mirroring `Service.spec.sessionAffinityConfig`. Defaults to `10800` (3 hours). Only read when `spec.sessionAffinity` is `ClientIP`. |
+| `spec.observability.metrics.enableMetrics` | Instructs the Operator to create `ServiceMonitor` or `PodMonitor` resources for the Collector. See [Configuring the Collector Metrics](../collector-metrics/index.mdx). |
+| `spec.observability.metrics.disablePrometheusAnnotations` | Prevents the Operator from stamping the default `prometheus.io/scrape`, `prometheus.io/port`, and `prometheus.io/path` annotations onto the pod template. Setting this to `true` on an existing Collector also removes annotations the Operator previously added, while leaving annotations you set yourself untouched. |
+
+**Example:**
+
+```yaml
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel
+spec:
+  mode: statefulset
+  replicas: 2
+  podManagementPolicy: Parallel # [!code callout]
+  hostAliases: # [!code callout]
+    - ip: "10.0.0.10"
+      hostnames:
+        - "backend.internal"
+  sessionAffinity: ClientIP # [!code callout]
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc: {}
+    exporters:
+      debug: {}
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          exporters: [debug]
+```
+
+<Callouts>
+1. Only meaningful in `statefulset` mode. Leave it unset for `deployment`, `daemonset`, and `sidecar` mode.
+2. Each entry maps one IP address to one or more hostnames inside the Collector pod.
+3. Pins each client IP to one Collector replica. `sessionAffinityConfig` is optional; omit it to keep the default 3-hour timeout.
+</Callouts>
+
+### Ingress and Gateway API
+
+The Operator can expose the Collector's receiver ports through either an `Ingress` resource or a Gateway API `HTTPRoute` resource. Both are available in `deployment`, `daemonset`, and `statefulset` mode only.
+
+- `spec.ingress` creates an `Ingress` resource. Configure the hostname, annotations, and TLS settings under this field.
+- `spec.httpRoute` creates a Gateway API `HTTPRoute` resource. Choose this when your cluster routes north-south traffic through a Gateway API implementation rather than an Ingress controller.
+
+The following example attaches the Collector to an existing `Gateway`:
+
+```yaml
+spec:
+  httpRoute:
+    enabled: true # [!code callout]
+    gateway: my-gateway # [!code callout]
+    gatewayNamespace: gateway-system # [!code callout]
+    hostnames: # [!code callout]
+      - otel.example.com
+```
+
+<Callouts>
+1. Required. Enables the `HTTPRoute` configuration.
+2. Required. The name of the `Gateway` resource to attach the route to.
+3. The namespace of the `Gateway` resource. Defaults to the Collector's own namespace.
+4. Hostnames matched by the route. When empty, the route matches any hostname.
+</Callouts>
+
+### Collector Status
+
+The `OpenTelemetryCollector` resource reports reconciliation state through `status.observedGeneration` and `status.conditions`. Automation that waits for a Collector to converge should compare `status.observedGeneration` against `metadata.generation` before reading conditions, so that it does not act on a status produced for an earlier revision of the resource.
+
+```bash
+kubectl get opentelemetrycollector <name> -n <namespace> \
+  -o jsonpath='{.metadata.generation} {.status.observedGeneration}{"\n"}'
+```

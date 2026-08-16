@@ -44,3 +44,24 @@ If the Collector runs in Deployment mode, you can view logs from all replicas:
 ```bash
 kubectl logs -l app.kubernetes.io/name=otel-collector -n opentelemetry-collector
 ```
+
+## Common startup warnings
+
+### Deprecated component type alias \{#deprecated-alias-warning}
+
+```text
+warn  builders/builders.go:40  "otlp" alias is deprecated; use "otlp_grpc" instead
+  {"otelcol.component.id": "otlp/traces", "otelcol.component.kind": "exporter", "otelcol.signal": "traces"}
+```
+
+The component is configured under a type name that upstream has renamed. The old name still resolves to the same implementation, so the Collector runs normally and no data is lost, but the alias will be removed in a future release.
+
+Read `otelcol.component.kind` before editing the configuration — it tells you which section to change. In the example above the warning is about an **exporter**, so only the `exporters` section needs the new name; the OTLP receiver in the same configuration keeps the name `otlp`. Rename the component under `spec.config`, keeping any `/name` suffix:
+
+```yaml
+exporters:
+  otlp_grpc/traces: # was otlp/traces
+    endpoint: jaeger-collector:4317
+```
+
+The warning is logged once per component instance at startup, so it reappears on every restart until the configuration is updated. For the full list of renamed components, see [Component type names](../configuration/collector/configuration-options.mdx#component-type-names).
