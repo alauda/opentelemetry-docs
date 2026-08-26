@@ -63,7 +63,7 @@ test_java_instrumentation() {
 
     # 步骤 0: 前提校验（USE_MESH_V2_TEST_SUITE_PLUGIN=true）
     if ! _use_test_suite_plugin; then
-        skip_test "未设置 USE_MESH_V2_TEST_SUITE_PLUGIN=true，跳过 Java OTel demo 测试"
+        skip_test_env "未设置 USE_MESH_V2_TEST_SUITE_PLUGIN=true，跳过 Java OTel demo 测试"
         return 0
     fi
 
@@ -90,7 +90,7 @@ test_java_instrumentation() {
         return 1
     }
 
-    # 步骤 3: 部署示例工作负载（consumer / provider / asm-client）
+    # 步骤 3: 部署示例工作负载（consumer / provider / curl-client）
     log_info "步骤 3: 部署示例工作负载"
     _demo_apply 'java-otel-test-service\.yaml' -n "$JAVA_OTEL_DEMO_NS" || {
         log_error "部署示例工作负载失败"
@@ -111,7 +111,7 @@ test_java_instrumentation() {
     # 步骤 5: 等待三个示例 Deployment 就绪
     log_info "步骤 5: 等待示例工作负载就绪"
     local dep
-    for dep in otel-demo-consumer-for-test otel-demo-provider-for-test asm-client; do
+    for dep in otel-demo-consumer-for-test otel-demo-provider-for-test curl-client; do
         _wait_for_deployment "$JAVA_OTEL_DEMO_NS" "$dep" || {
             log_error "等待 Deployment $dep 就绪失败"
             return 1
