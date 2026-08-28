@@ -1,0 +1,204 @@
+---
+weight: 10
+---
+
+# Upgrading Alauda Build of OpenTelemetry v2
+
+Upgrading from v2.0 (Operator 0.147.0, Collector 0.147.0) to v2.1 (Operator 0.157.0, Collector 0.158.0) involves the following steps:
+
+1. Upgrading the Alauda Build of OpenTelemetry v2 Operator
+2. Updating the OpenTelemetry Collector configuration
+
+:::note
+Upstream renamed most component types in this release, but the previous names remain available as deprecated aliases. An existing configuration therefore keeps running after the Operator is upgraded, and the Collector only logs a deprecation warning for each affected component. Updating the configuration is the second step, not a prerequisite for the first.
+:::
+
+**Prerequisites**
+
+- An Alauda Build of OpenTelemetry v2.0 deployment installed as described in [Installing Alauda Build of OpenTelemetry v2](../installing/install-opentelemetry.mdx).
+- The Alauda Build of OpenTelemetry v2 Operator 0.157.0 is published to the platform.
+- An active ACP CLI (`kubectl`) session by a cluster administrator with the `cluster-admin` role.
+- Review the [Upgrade Notes](../about/release-notes/v2-1-0.mdx#upgrade-notes) for the behavior changes introduced by this release.
+
+**Setting environment variables**
+
+```bash {name=upgrade-otel:set-vars}
+# Namespace of the OpenTelemetry Collector instance
+export OTEL_NS="opentelemetry-collector"
+# Name of the OpenTelemetryCollector resource
+export OTEL_INSTANCE_NAME="otel"
+# Endpoint that the OTLP exporter of this Collector already sends traces to
+export OTEL_TRACES_ENDPOINT="jaeger-collector.jaeger-system.svc.cluster.local:4317"
+```
+
+## Upgrading the Operator \{#upgrading-the-operator}
+
+The Operator is subscribed with the `Manual` approval strategy, so the upgrade must be approved explicitly. For general background on Operator upgrades, see <ExternalSiteLink name="acp" href="/extend/operator.html" children="Operator" />.
+
+### Upgrading via the web console
+
+Choose one of the following methods:
+
+- **Batch upgrade**: navigate to **Platform Management** > **Cluster Management** > **Clusters** > *cluster* > **Functional Components**, and upgrade **Alauda Build of OpenTelemetry v2**.
+- **Individual upgrade**: navigate to **Administrator** > **Marketplace** > **OperatorHub**, open **Alauda Build of OpenTelemetry v2**, and approve the pending upgrade request.
+
+### Upgrading via the CLI
+
+1. Confirm that the target version is available in the subscribed channel:
+
+    ```bash {name=upgrade-otel:check-operator-versions}
+    kubectl -ncpaas-system get packagemanifest opentelemetry-operator2 \
+      -o jsonpath='{range .status.channels[*]}{.name}{"\t"}{.currentCSV}{"\n"}{end}'
+    ```
+
+2. Approve the pending `InstallPlan`:
+
+    ```bash {name=upgrade-otel:approve-installplan}
+    PLAN=$(kubectl -nopentelemetry-operator2 get subscription opentelemetry-operator2 \
+      -o jsonpath='{.status.installPlanRef.name}')
+    kubectl -nopentelemetry-operator2 patch installplan "${PLAN}" \
+      --type=json -p='[{"op": "replace", "path": "/spec/approved", "value": true}]'
+    ```
+
+3. Wait until the new `ClusterServiceVersion` reaches the `Succeeded` phase:
+
+    ```bash {name=upgrade-otel:verify-operator-csv}
+    kubectl -nopentelemetry-operator2 get csv
+    ```
+
+    **Example output**
+
+    ```text {name=upgrade-otel:verify-operator-csv-output}
+    NAME                                  DISPLAY                            VERSION      REPLACES                              PHASE
+    opentelemetry-operator2.v0.157.0-r1   Alauda Build of OpenTelemetry v2   0.157.0-r1   opentelemetry-operator2.v0.147.0-r0   Succeeded
+    ```
+
+**Verification**
+
+The Operator upgrade restarts every managed Collector. A Collector that does not pin `spec.image` picks up Collector 0.158.0 as soon as the Operator is upgraded:
+
+```bash {name=upgrade-otel:verify-collector-version}
+kubectl -n${OTEL_NS} get opentelemetrycollector ${OTEL_INSTANCE_NAME} \
+  -o custom-columns=NAME:.metadata.name,VERSION:.status.version,READY:.status.scale.statusReplicas,IMAGE:.status.image
+```
+
+**Example output**
+
+```text {name=upgrade-otel:verify-collector-version-output}
+NAME   VERSION   READY   IMAGE
+otel   0.157.0   1/1     build-harbor.alauda.cn/asm/opentelemetry-collector:0.158.0-r1
+```
+
+`VERSION` reports the Operator version that manages the instance, and `IMAGE` reports the Collector image it now runs.
+
+## Updating the OpenTelemetry Collector Configuration \{#updating-the-collector-configuration}
+
+A Collector that only uses components whose type names are unchanged — such as the configuration created by the [installation procedure](../installing/install-opentelemetry.mdx#deploying-the-opentelemetry-collector) — needs no configuration change.
+
+:::note
+The Operator reissues its admission webhook certificate during the upgrade. A patch applied in that window is rejected with `failed calling webhook "mopentelemetrycollectorbeta.kb.io": ... x509: certificate signed by unknown authority`. Wait a few seconds and apply it again.
+:::
+
+**Procedure**
+
+1. List the deprecation warnings to find out which components in your configuration are affected:
+
+    ```bash {name=upgrade-otel:list-deprecations}
+    kubectl logs deployment/${OTEL_INSTANCE_NAME}-collector -n ${OTEL_NS} --tail=500 \
+      | grep -o '"[a-z_]*" alias is deprecated; use "[a-z_]*" instead' \
+      || echo "No deprecation warnings"
+    ```
+
+    **Example output**
+
+    ```text {name=upgrade-otel:list-deprecations-output}
+    "otlp" alias is deprecated; use "otlp_grpc" instead
+    "resourcedetection" alias is deprecated; use "resource_detection" instead
+    "spanmetrics" alias is deprecated; use "span_metrics" instead
+    ```
+
+    The full log line also names the affected component instance, for example `"otelcol.component.id": "otlp/traces"`.
+
+2. Create a file named `otel-upgrade-patch.yaml`. The following example migrates a Collector that uses a `resourcedetection` processor, a `spanmetrics` connector, an `otlp` exporter named `otlp/traces`, and a `prometheus` exporter. Keep only the entries that match your own configuration:
+
+    ```yaml title="otel-upgrade-patch.yaml" {name=upgrade-otel:otel-upgrade-patch-yaml}
+    spec:
+      config:
+        processors:
+          resourcedetection: null # [!code callout]
+          resource_detection:
+            detectors: [env]
+            timeout: 2s
+        connectors:
+          spanmetrics: null
+          span_metrics: {}
+        exporters:
+          otlp/traces: null
+          otlp_grpc/traces:
+            endpoint: "${OTEL_TRACES_ENDPOINT}"
+            tls:
+              insecure: true
+          prometheus:
+            endpoint: 0.0.0.0:8889
+            add_metric_suffixes: null # [!code callout]
+            translation_strategy: UnderscoreEscapingWithoutSuffixes
+        service:
+          pipelines: # [!code callout]
+            traces:
+              processors: [memory_limiter, resource_detection, batch]
+              exporters: [debug, otlp_grpc/traces, span_metrics]
+            metrics/spanmetrics:
+              receivers: [span_metrics]
+    ```
+
+    <Callouts>
+      1. A renamed component is migrated by setting the old key to `null` and recreating it under the new name. Copy the existing settings across unchanged: a merge patch does not carry them over, does not remove the old key implicitly, and leaving both keys in place starts two instances of the same component. For the full list of renamed components, see [Component type names now use snake_case](../about/release-notes/v2-1-0.mdx#snake-case-names).
+      2. `add_metric_suffixes` is deprecated. The `prometheus` exporter ignores it altogether, so `translation_strategy: UnderscoreEscapingWithoutSuffixes` is what now keeps the exported metric names free of Prometheus-style suffixes such as `_total`. The `prometheus_remote_write` exporter still honors `add_metric_suffixes`, but logs a deprecation warning.
+      3. Every pipeline that references a renamed component must be updated as well, otherwise the Collector fails to start with `references exporter "otlp/traces" which is not configured`. Because pipeline members are lists, each list is replaced as a whole.
+    </Callouts>
+
+3. Render the patch with `envsubst` and apply it:
+
+    ```bash {name=upgrade-otel:apply-otel-patch}
+    kubectl patch opentelemetrycollector ${OTEL_INSTANCE_NAME} -n ${OTEL_NS} \
+      --type=merge -p "$(envsubst < otel-upgrade-patch.yaml)"
+    ```
+
+**Verification**
+
+Wait for the Collector to restart, and confirm that it starts without deprecation warnings:
+
+```bash {name=upgrade-otel:verify-otel-collector}
+kubectl rollout status deployment/${OTEL_INSTANCE_NAME}-collector -n ${OTEL_NS} --timeout=180s
+sleep 3
+kubectl logs deployment/${OTEL_INSTANCE_NAME}-collector -n ${OTEL_NS} --tail=500 \
+  | grep -i "deprecated" || echo "No deprecation warnings"
+```
+
+**Example output**
+
+```text {name=upgrade-otel:verify-otel-collector-output}
+deployment "otel-collector" successfully rolled out
+No deprecation warnings
+```
+
+### Changes that are not covered by an alias \{#changes-without-an-alias}
+
+The following changes are not reported as deprecation warnings, because the affected configurations either keep starting with different behavior or fail to start outright. Review them against your own configuration:
+
+| Change | Action |
+| :----- | :----- |
+| The Kafka exporter no longer accepts top-level `topic` and `encoding`. | Move both under `traces`, `metrics`, and `logs`. A configuration that keeps the top-level fields fails to start. |
+| The default `error_mode` of the Filter processor, the Transform processor, and the Routing connector changed from `propagate` to `ignore`. | Set `error_mode: propagate` explicitly if you rely on OTTL failures aborting the pipeline. |
+| The Host Metrics receiver aggregates `system.cpu.time` and `system.cpu.utilization` across logical CPUs. | Add `attributes: [cpu, state]` to both metrics to restore per-CPU data points. |
+| The Kubelet Stats receiver disables six deprecated resource attributes, including `fs.type` and `partition`. | Enable them explicitly if downstream pipelines still consume them. |
+| Collector internal metrics no longer carry `service_name`, `service_instance_id`, or `service_version` labels. | Rewrite dashboards and alerting rules to join against `target_info`. See [Identifying the Collector](../configuration/collector-metrics/index.mdx#identifying-the-collector). |
+| The Spanmetrics connector adds a `collector.instance.id` attribute to every metric it emits. | Expect higher series cardinality, and aggregate the attribute away in queries that must stay stable across Collector restarts. |
+| Automatic RBAC creation now rejects an `OpenTelemetryCollector` resource if the submitting user does not hold the permissions being granted. | Grant the submitting user those permissions, or have a user who already holds them create the resource. See [Creating the Required RBAC Resources Automatically](../installing/rbac-resources.mdx). |
+| Sidecar-mode Collectors no longer get a `Service`, `Ingress`, `NetworkPolicy`, or `HorizontalPodAutoscaler`. | Expose the sidecar through the application's own `Service`. |
+
+For the complete list, see the [Upgrade Notes](../about/release-notes/v2-1-0.mdx#upgrade-notes).
+
+## Next Steps
+
+The Operator does not upgrade the auto-instrumentation agents injected into application pods. To upgrade them, follow [Upgrading the Auto-instrumentation Agents](./upgrading-auto-instrumentation.mdx).

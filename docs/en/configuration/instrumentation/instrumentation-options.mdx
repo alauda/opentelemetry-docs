@@ -168,7 +168,7 @@ spec:
       memory: 64Mi
 ```
 
-## Security Context Configuration
+## Security Context Configuration \{#security-context-configuration}
 
 By default, the auto-instrumentation init containers inherit the security context of the first application container being instrumented, and the Go sidecar keeps the settings that eBPF requires (`privileged: true` and `runAsUser: 0`). In clusters that enforce restricted Pod Security Admission, inheriting a context is not always sufficient — you may need to declare capabilities explicitly.
 
