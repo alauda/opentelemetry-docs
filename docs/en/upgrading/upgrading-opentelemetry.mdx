@@ -101,6 +101,10 @@ The Operator reissues its admission webhook certificate during the upgrade. A pa
 
 **Procedure**
 
+:::warning
+The commands and the patch below are an example, built from one specific Collector configuration. Read every entry against your own `OpenTelemetryCollector` resource and adjust it before applying: a patch copied verbatim can delete components that your pipelines still use, or recreate a component without the settings it had.
+:::
+
 1. List the deprecation warnings to find out which components in your configuration are affected:
 
     ```bash {name=upgrade-otel:list-deprecations}

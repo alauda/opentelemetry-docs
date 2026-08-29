@@ -12,13 +12,15 @@ Each `Instrumentation` resource names the agent image it injects in `spec.<langu
 The examples below upgrade the Java agent from 2.26.1 to 2.30.0. The same procedure applies to the other supported languages by substituting the corresponding field — `spec.python.image`, `spec.nodejs.image`, `spec.dotnet.image`, `spec.go.image`, or `spec.apacheHttpd.image`.
 
 :::note Why the Operator does not do this for you
-The Operator records the image it would inject by default in the `instrumentation.opentelemetry.io/default-auto-instrumentation-<language>-image` annotation, and on startup it rewrites `spec.<language>.image` for any language whose image still matches that recorded default. An image that you supply yourself never matches, so it is left untouched — and on Alauda Container Platform, where the agent images come from the platform registry, that is the normal case.
+The Operator records the image it would inject by default in the `instrumentation.opentelemetry.io/default-auto-instrumentation-<language>-image` annotation, and on startup it rewrites `spec.<language>.image` for any language whose image still matches that recorded default. An image that you supply yourself never matches, so it is left untouched. That is always the case here, because the Operator provides the injection mechanism only and includes no pre-built instrumentation images: every `spec.<language>.image` holds an image that you built or sourced yourself.
+
+The automatic path is blocked for Java in this release in any case. The recorded default moves from 1.33.6 to 2.30.0, a major-version jump that the Operator refuses to apply on its own: it reports `upgrade blocked for unupgradable instrumentation version` in its log and leaves the resource unchanged.
 :::
 
 **Prerequisites**
 
 - The Alauda Build of OpenTelemetry v2 Operator is upgraded to 0.157.0, as described in [Upgrading Alauda Build of OpenTelemetry v2](./upgrading-opentelemetry.mdx).
-- The new agent image is pullable from the cluster. See [Java Auto-instrumentation](../configuration/instrumentation/java-instrumentation.mdx) for the image version that the current release documents.
+- The agent image to upgrade to is built or sourced by you and is pullable from the cluster. The Operator does not include pre-built instrumentation libraries or container images; see [Instrumentation Options](../configuration/instrumentation/instrumentation-options.mdx).
 - An active ACP CLI (`kubectl`) session by a cluster administrator with the `cluster-admin` role.
 
 ## Updating the Instrumentation Resource \{#updating-the-instrumentation-resource}
