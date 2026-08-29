@@ -1,0 +1,142 @@
+---
+weight: 20
+---
+
+# Upgrading the Auto-instrumentation Agents
+
+Each `Instrumentation` resource names the agent image it injects in `spec.<language>.image`, and the agent is copied into the application pod by an init container that the Operator injects when the pod is admitted. Upgrading an agent therefore has two parts:
+
+1. Updating the image reference in the `Instrumentation` resource
+2. Restarting the instrumented workloads, because a running pod keeps the agent version it started with
+
+The examples below upgrade the Java agent from 2.26.1 to 2.30.0. The same procedure applies to the other supported languages by substituting the corresponding field — `spec.python.image`, `spec.nodejs.image`, `spec.dotnet.image`, `spec.go.image`, or `spec.apacheHttpd.image`.
+
+:::note Why the Operator does not do this for you
+The Operator records the image it would inject by default in the `instrumentation.opentelemetry.io/default-auto-instrumentation-<language>-image` annotation, and on startup it rewrites `spec.<language>.image` for any language whose image still matches that recorded default. An image that you supply yourself never matches, so it is left untouched. That is always the case here, because the Operator provides the injection mechanism only and includes no pre-built instrumentation images: every `spec.<language>.image` holds an image that you built or sourced yourself.
+:::
+
+**Prerequisites**
+
+- The Alauda Build of OpenTelemetry v2 Operator is upgraded to 0.157.0, as described in [Upgrading Alauda Build of OpenTelemetry v2](./upgrading-opentelemetry.mdx).
+- The agent image to upgrade to is built or sourced by you and is pullable from the cluster. The Operator does not include pre-built instrumentation libraries or container images; see [Instrumentation Options](../configuration/instrumentation/instrumentation-options.mdx).
+- An active ACP CLI (`kubectl`) session by a cluster administrator with the `cluster-admin` role.
+
+## Updating the Instrumentation Resource \{#updating-the-instrumentation-resource}
+
+1. List the `Instrumentation` resources and the Java agent image each one injects:
+
+    ```bash {name=upgrade-instr:list-instrumentations}
+    kubectl get instrumentation -A \
+      -o custom-columns=NAMESPACE:.metadata.namespace,NAME:.metadata.name,JAVA_IMAGE:.spec.java.image
+    ```
+
+    **Example output**
+
+    ```text {name=upgrade-instr:list-instrumentations-output}
+    NAMESPACE          NAME              JAVA_IMAGE
+    otelv2-java-demo   acp-common-java   <registry>/opentelemetry-operator/autoinstrumentation-java:2.26.1
+    ```
+
+2. Set the environment variables used by the remaining commands:
+
+    ```bash {name=upgrade-instr:set-vars}
+    # Namespace and name of the Instrumentation resource to upgrade
+    export INSTR_NS="otelv2-java-demo"
+    export INSTR_NAME="acp-common-java"
+    # Java agent image to upgrade to
+    export JAVA_AGENT_IMAGE="<registry>/opentelemetry-operator/autoinstrumentation-java:2.30.0"
+    ```
+
+3. Update the image reference:
+
+    ```bash {name=upgrade-instr:patch-image}
+    kubectl -n ${INSTR_NS} patch instrumentation ${INSTR_NAME} --type=merge \
+      -p "{\"spec\":{\"java\":{\"image\":\"${JAVA_AGENT_IMAGE}\"}}}"
+    ```
+
+    :::note
+    The `Instrumentation` resource is read only when a pod is admitted, so this patch has no effect on pods that are already running, and none of them restart.
+
+    The Operator fills in a default image for every language it supports, not only the one you configure, and warns when one of those defaults is too old to be upgraded automatically — for example `dotnet image ... 1.2.0 is at a version that cannot be automatically upgraded`. The warning is unrelated to the language you are upgrading and does not prevent the patch from being applied.
+    :::
+
+## Restarting the Instrumented Workloads \{#restarting-the-instrumented-workloads}
+
+1. List the workloads that the updated `Instrumentation` resource applies to:
+
+    ```bash {name=upgrade-instr:list-workloads}
+    kubectl -n ${INSTR_NS} get deployment -o json | jq -r '
+      .items[]
+      | select(.spec.template.metadata.annotations["instrumentation.opentelemetry.io/inject-java"])
+      | .metadata.name'
+    ```
+
+    :::note
+    The injection annotation can also be set on the namespace, in which case every workload in that namespace is instrumented and the command above returns nothing. Adjust the selection to match how injection is enabled in your deployment, and cover `DaemonSet` and `StatefulSet` workloads the same way.
+    :::
+
+2. Restart each workload and wait for it to become ready:
+
+    ```bash {name=upgrade-instr:restart-workloads}
+    for DEPLOY in $(kubectl -n ${INSTR_NS} get deployment -o json | jq -r '
+      .items[]
+      | select(.spec.template.metadata.annotations["instrumentation.opentelemetry.io/inject-java"])
+      | .metadata.name'); do
+      kubectl -n ${INSTR_NS} rollout restart deployment/"${DEPLOY}"
+      kubectl -n ${INSTR_NS} rollout status deployment/"${DEPLOY}" --timeout=300s
+    done
+    ```
+
+    :::warning
+    Restarting the workloads interrupts the traffic they serve. Roll them out during a maintenance window, or one at a time, if the applications do not tolerate a rolling restart.
+    :::
+
+## Verification \{#verification}
+
+1. Confirm that the injected init container runs the new agent image:
+
+    ```bash {name=upgrade-instr:verify-agent-image}
+    kubectl -n ${INSTR_NS} get pods \
+      -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.initContainers[*].image}{"\n"}{end}'
+    ```
+
+    **Example output**
+
+    ```text {name=upgrade-instr:verify-agent-image-output}
+    otel-demo-consumer-for-test-7f69ffbbd6-fvgnv    <registry>/opentelemetry-operator/autoinstrumentation-java:2.30.0
+    otel-demo-provider-for-test-9d648d8ff-mn9rx     <registry>/opentelemetry-operator/autoinstrumentation-java:2.30.0
+    ```
+
+    A pod listed without an image is not instrumented, either because it carries no injection annotation or because it was admitted before the annotation was added.
+
+2. Confirm that the agent is loaded into the application JVM. The Operator mounts the agent under a directory named after the container it instruments:
+
+    ```bash {name=upgrade-instr:verify-javaagent}
+    kubectl -n ${INSTR_NS} get pods \
+      -o jsonpath='{range .items[*].spec.containers[*].env[?(@.name=="JAVA_TOOL_OPTIONS")]}{.value}{"\n"}{end}'
+    ```
+
+    **Example output**
+
+    ```text {name=upgrade-instr:verify-javaagent-output}
+     -javaagent:/otel-auto-instrumentation-java-otel-demo-consumer-for-test/javaagent.jar
+     -javaagent:/otel-auto-instrumentation-java-otel-demo-provider-for-test/javaagent.jar
+    ```
+
+3. Generate application traffic and confirm that traces still reach the Collector. If the Collector uses the `debug` exporter, the span batches appear in its logs:
+
+    ```bash {name=upgrade-instr:verify-traces}
+    kubectl logs deployment/otel-collector -n opentelemetry-collector --tail=50 | grep '"spans":'
+    ```
+
+    **Example output**
+
+    ```text {name=upgrade-instr:verify-traces-output}
+    2026-08-28T11:05:30.145Z  info  Traces  {..., "otelcol.component.id": "debug", "otelcol.signal": "traces", "resource spans": 1, "spans": 8}
+    ```
+
+## Version Considerations \{#version-considerations}
+
+- The `Instrumentation` API is unchanged in this release. Two optional fields are added: `spec.initContainerSecurityContext`, which sets the security context of the injected init containers, and `spec.go.securityContext`, which overrides the defaults of the Go sidecar. See [Security Context Configuration](../configuration/instrumentation/instrumentation-options.mdx#security-context-configuration).
+- The agents are released independently of the Operator and follow their own version streams. Review the release notes of the agent you are upgrading for behavior changes, such as new or renamed span attributes, before rolling it out to production.
+- The exporter endpoint configured in `spec.exporter.endpoint` is unaffected by the upgrade. The Java agent still defaults to the `http/protobuf` protocol, so the endpoint must address the Collector OTLP HTTP receiver on port `4318` unless `OTEL_EXPORTER_OTLP_PROTOCOL=grpc` is set explicitly.
