@@ -13,8 +13,6 @@ The examples below upgrade the Java agent from 2.26.1 to 2.30.0. The same proced
 
 :::note Why the Operator does not do this for you
 The Operator records the image it would inject by default in the `instrumentation.opentelemetry.io/default-auto-instrumentation-<language>-image` annotation, and on startup it rewrites `spec.<language>.image` for any language whose image still matches that recorded default. An image that you supply yourself never matches, so it is left untouched — and on Alauda Container Platform, where the agent images come from the platform registry, that is the normal case.
-
-The automatic path is also blocked for Java in this release: the recorded default moves from 1.33.6 to 2.30.0, a major-version jump that the Operator refuses to apply on its own. It reports `upgrade blocked for unupgradable instrumentation version` in its log and leaves the resource unchanged.
 :::
 
 **Prerequisites**
