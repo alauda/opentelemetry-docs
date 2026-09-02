@@ -82,6 +82,14 @@ test_java_instrumentation() {
             log_error "创建命名空间 $JAVA_OTEL_DEMO_NS 失败"
             return 1
         }
+    kubectl label namespace "$JAVA_OTEL_DEMO_NS" \
+        pod-security.kubernetes.io/enforce=restricted \
+        pod-security.kubernetes.io/audit=restricted \
+        pod-security.kubernetes.io/warn=restricted \
+        --overwrite || {
+            log_error "为命名空间 $JAVA_OTEL_DEMO_NS 设置 restricted PSA 标签失败"
+            return 1
+        }
 
     # 步骤 2: 部署 Instrumentation（OTel javaagent 注入配置）
     log_info "步骤 2: 部署 Instrumentation"
