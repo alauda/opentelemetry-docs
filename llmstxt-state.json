@@ -3,7 +3,7 @@
   "generator_version": 3,
   "project_name": "Alauda Container Platform Application Observability Documentation",
   "summary": "Documentation for Alauda Container Platform Application Observability — a Kubernetes-native distribution of OpenTelemetry that provides unified collection, processing, and forwarding of telemetry data (metrics, traces, logs) with automated workload instrumentation.",
-  "generated_at": "2026-05-16T09:38:59Z",
+  "generated_at": "2026-11-10T15:06:57Z",
   "include_patterns": [
     "**/*.md",
     "**/*.mdx"
@@ -144,11 +144,11 @@
       "updated_at": "2026-05-16T09:38:59Z"
     },
     "docs/en/configuration/collector/index.mdx": {
-      "sha256": "56fe3201114dff01fec6d9c4f01af8757feb1766eaa487416b32168c6fb178f2",
-      "size": 574,
+      "sha256": "db0aefe5f9f57bf42453b8e7b491edd4fe2d9ded48c93e9fb407a82188414c04",
+      "size": 593,
       "description": "Landing page for configuring the OpenTelemetry Collector via the Alauda Container Platform Application Observability Operator CRD, which defines architecture and deployment settings. Introduces deployment strategies, per-component configuration, and resource management with the option to use defaults or customize for specific requirements.",
       "generation_method": "ai_agent_reading",
-      "updated_at": "2026-05-16T09:38:59Z"
+      "updated_at": "2026-11-10T15:06:57Z"
     },
     "docs/en/configuration/collector/processors.mdx": {
       "sha256": "7a6fc79a00b4f07cc761d15baef4c376ae1835ed12d267619be238b6f392b933",
@@ -200,11 +200,11 @@
       "updated_at": "2026-05-16T09:38:59Z"
     },
     "docs/en/configuration/instrumentation/auto-instrumentation.mdx": {
-      "sha256": "69b2420209d7c28a8f526ab2a0ab2f0546fe7e57fb347dee1f7776d427ba409e",
-      "size": 3079,
+      "sha256": "5ab3c65d88f1b50f4b2bf460ce850cdd5bfcc55dc11428961164920bb32ba576",
+      "size": 3117,
       "description": "Explains how the Alauda Container Platform Application Observability Operator uses Kubernetes admission webhooks to inject instrumentation: an init container copies SDK libraries into a shared volume, then the app container loads them at startup with auto-configured environment variables. Lists supported runtimes (Apache HTTPD, .NET, Go, Java, Node.js, Python), the workflow of creating an `Instrumentation` CR plus pod/namespace annotation, and the benefits (zero code change, consistent telemetry, easy SDK updates).",
       "generation_method": "ai_agent_reading",
-      "updated_at": "2026-05-16T09:38:59Z"
+      "updated_at": "2026-11-10T15:06:57Z"
     },
     "docs/en/configuration/instrumentation/dotnet-instrumentation.mdx": {
       "sha256": "e79a80fca0022b76e8a5303b22433b7ef40f452604d7968eaae2392dd5b1a818",
@@ -228,18 +228,18 @@
       "updated_at": "2026-05-16T09:38:59Z"
     },
     "docs/en/configuration/instrumentation/index.mdx": {
-      "sha256": "3bf3683bb21aca0435f2d144d2d6d70d6713c11dc0cc9e1397f3007da454752f",
-      "size": 630,
+      "sha256": "51785d0e1d359dc47e41b5718fde88ecf9672fd6aa341e89dbd075e6872a70c1",
+      "size": 649,
       "description": "Section overview introducing the Alauda Container Platform Application Observability Operator's automatic instrumentation, which injects OpenTelemetry libraries into application containers without code changes. Frames the subsections covering language-specific settings, SDK variables, exporter configuration, and advanced deployment scenarios.",
       "generation_method": "ai_agent_reading",
-      "updated_at": "2026-05-16T09:38:59Z"
+      "updated_at": "2026-11-10T15:06:57Z"
     },
     "docs/en/configuration/instrumentation/instrumentation-options.mdx": {
-      "sha256": "316c3ee1c6f60441d7ef3d59dad310280cbb5ce8a3aaa295da3347c3e0a07606",
-      "size": 8094,
+      "sha256": "bc7846dbf34dd4359ebf7b59f0b3bec95e79e9ce505290f7134d097c1c5fc16e",
+      "size": 9991,
       "description": "Reference for the `Instrumentation` custom resource (apiVersion `opentelemetry.io/v1alpha1`) used by the Alauda Container Platform Application Observability Operator to control auto-injection: exporter endpoint, propagators (`tracecontext`, `baggage`, `b3`, `b3multi`, `jaeger`, `ottrace`), samplers like `parentbased_traceidratio`, and language-specific blocks (`java`, `python`, `dotnet`, `go`, `nodejs`, `apacheHttpd`). Documents annotation-driven injection via `instrumentation.opentelemetry.io/inject-<language>` and `inject-sdk`, supported values (`true`, `false`, `<name>`, `<namespace>/<name>`), namespace-level annotations, init-container resource limits, default OTLP protocols per language (gRPC port 4317 vs HTTP 4318), and selective injection through `container-names`.",
       "generation_method": "ai_agent_reading",
-      "updated_at": "2026-05-16T09:38:59Z"
+      "updated_at": "2026-11-10T15:06:57Z"
     },
     "docs/en/configuration/instrumentation/java-instrumentation.mdx": {
       "sha256": "dcf4c518862c5d87c0e0d2a8fe0fc8d90b5024b49a207f97ea6f704aa6bbf99f",
@@ -284,11 +284,11 @@
       "updated_at": "2026-05-16T09:38:59Z"
     },
     "docs/en/configuration/monitoring-stack-metrics/index.mdx": {
-      "sha256": "57f75c27cd74a0d4d90c60482823e81a6f92c4e2dd86d976620d5b5ee9bf5dd3",
-      "size": 4353,
+      "sha256": "870a65cdf60e342d5b7a4f27d612e394399938f9bd61d9a18cda42567a161767",
+      "size": 4641,
       "description": "Integrates the OpenTelemetry Collector with the platform monitoring stack so Prometheus scrapes both the Collector's internal telemetry endpoint and any Prometheus exporter pipeline endpoints. Enabling `spec.observability.metrics.enableMetrics: true` on the `OpenTelemetryCollector` CR makes the Operator auto-create two `ServiceMonitor` resources (`<instance>-collector-monitoring` for operational metrics and `<instance>-collector` for exporter metrics); the `prometheus: kube-prometheus` label is required by ACP Prometheus. Also shows a manually authored `PodMonitor` with `labeldrop` relabelings on `pod`, `container`, `endpoint`, `instance`, and `job` to suppress duplicate labels introduced by scraping the `metrics` and `promexporter` ports.",
       "generation_method": "ai_agent_reading",
-      "updated_at": "2026-05-16T09:38:59Z"
+      "updated_at": "2026-11-10T15:06:57Z"
     },
     "docs/en/configuration/send-telemetry-data/index.mdx": {
       "sha256": "0bcfefcb2a42f3a1af069de2f1ec4506fe30aac323b78acf10476815f3f08ff3",
@@ -298,11 +298,11 @@
       "updated_at": "2026-05-16T09:38:59Z"
     },
     "docs/en/configuration/send-telemetry-data/sidecar-injection.mdx": {
-      "sha256": "2e2adb09472c8b097a07b49f95193290789fa8de58135d6de3e1c060edc16c20",
-      "size": 2724,
+      "sha256": "0e4da690b674950e53a84016ef2e9805c3c2d9f58224467ac519d0eed06580d8",
+      "size": 3525,
       "description": "Step-by-step procedure for sending traces to the Collector via sidecar injection: create an `OpenTelemetryCollector` CR with `mode: sidecar` (OTLP gRPC/HTTP receivers, `memory_limiter` plus `batch` processors, OTLP exporter pointed at the Alauda Build of Jaeger v2 collector service like `jaeger-<example>-collector:4317` with `tls.insecure: true`), then add the `sidecar.opentelemetry.io/inject: \"true\"` annotation to the application Deployment's pod template so the Operator injects the Collector container into each pod. Prerequisites include the Alauda Container Platform Application Observability Operator, Alauda Build of Jaeger v2, and `cluster-admin` kubectl access.",
       "generation_method": "ai_agent_reading",
-      "updated_at": "2026-05-16T09:38:59Z"
+      "updated_at": "2026-11-10T15:06:57Z"
     },
     "docs/en/configuration/send-telemetry-data/without-sidecar.mdx": {
       "sha256": "d437eca0cac3725a108d5848626ac810fc5e8fb4052c4d4eebeffcc094169038",
