@@ -1,8 +1,8 @@
 # llms.txt generator configuration for alauda/opentelemetry-docs
 # See: https://llmstxt.org
 
-project_name: "Alauda Build of OpenTelemetry v2 Documentation"
-summary: "Documentation for Alauda Build of OpenTelemetry v2 — a Kubernetes-native distribution of OpenTelemetry that provides unified collection, processing, and forwarding of telemetry data (metrics, traces, logs) with automated workload instrumentation."
+project_name: "Alauda Container Platform Application Observability Documentation"
+summary: "Documentation for Alauda Container Platform Application Observability — a Kubernetes-native distribution of OpenTelemetry that provides unified collection, processing, and forwarding of telemetry data (metrics, traces, logs) with automated workload instrumentation."
 
 include_patterns:
   - "**/*.md"

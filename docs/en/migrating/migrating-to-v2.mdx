@@ -2,9 +2,9 @@
 weight: 10
 ---
 
-# Migrating from Alauda Build of OpenTelemetry to Alauda Build of OpenTelemetry v2
+# Migrating from Alauda Build of OpenTelemetry to Alauda Container Platform Application Observability
 
-This document describes how to migrate an existing `Alauda Build of OpenTelemetry` (built on upstream OpenTelemetry Operator/Collector `0.108.0`) deployment to `Alauda Build of OpenTelemetry v2` (built on upstream Operator `0.157.0` and Collector `0.158.0`).
+This document describes how to migrate an existing `Alauda Build of OpenTelemetry` (built on upstream OpenTelemetry Operator/Collector `0.108.0`) deployment to `Alauda Container Platform Application Observability` (built on upstream Operator `0.157.0` and Collector `0.158.0`).
 
 The two distributions are delivered through different OLM packages — `opentelemetry-operator` and `opentelemetry-operator2` — but they own the same Custom Resource Definitions (`OpenTelemetryCollector` and `Instrumentation`). OLM does not allow two Operators to own the same CRDs simultaneously, therefore the migration must be performed as **uninstall v1 → install v2**, not as a side-by-side upgrade.
 
@@ -115,7 +115,7 @@ kubectl get clusterrolebinding otel-collector:cpaas-system:cluster-admin -o yaml
 ```
 
 :::note
-The backup files are only used as a configuration reference and as a rollback artifact. The `cpaas-system` `ServiceMonitor`, `ServiceAccount`, and `ClusterRoleBinding` backups are only needed if you later roll back integrations that depend on those v1 resources. When you rebuild resources on v2, follow the v2 conventions described in [Installing Alauda Build of OpenTelemetry v2](../installing/install-opentelemetry.mdx) and adjust as needed.
+The backup files are only used as a configuration reference and as a rollback artifact. The `cpaas-system` `ServiceMonitor`, `ServiceAccount`, and `ClusterRoleBinding` backups are only needed if you later roll back integrations that depend on those v1 resources. When you rebuild resources on v2, follow the v2 conventions described in [Installing Alauda Container Platform Application Observability](../installing/install-opentelemetry.mdx) and adjust as needed.
 :::
 
 ### Preparing the Java agent image \{#preparing-the-java-agent-image}
@@ -133,7 +133,7 @@ The OpenTelemetry Java agent has moved from the `1.x` series to the `2.x` series
 
 ### Check Collector configuration compatibility
 
-Alauda Build of OpenTelemetry v2 supports the components listed in the [v2.1.0 Release Notes](../about/release-notes/v2-1-0.mdx). Review every `receiver`, `processor`, `exporter`, `connector`, and `extension` referenced in your existing `OpenTelemetryCollector` resources and confirm that:
+Alauda Container Platform Application Observability supports the components listed in the [v2.1.0 Release Notes](../about/release-notes/v2-1-0.mdx). Review every `receiver`, `processor`, `exporter`, `connector`, and `extension` referenced in your existing `OpenTelemetryCollector` resources and confirm that:
 
 - Each component is included in the v2 supported component lists.
 - The component type names match the current upstream spelling. Most component types were renamed to snake_case across the upstream release range — for example `k8sattributes` became `k8s_attributes`. The previous names still work as deprecated aliases, but the [v2.1.0 Release Notes](../about/release-notes/v2-1-0.mdx) list the current spelling for each component.
@@ -211,7 +211,7 @@ Do not delete the `opentelemetrycollectors.opentelemetry.io` and `instrumentatio
 
 ### Install the v2 Operator \{#install-the-v2-operator}
 
-Follow [Installing the Alauda Build of OpenTelemetry v2 Operator](../installing/install-opentelemetry.mdx#installing-the-alauda-build-of-opentelemetry-v2-operator). The condensed CLI flow is:
+Follow [Installing the Alauda Container Platform Application Observability Operator](../installing/install-opentelemetry.mdx#installing-the-alauda-build-of-opentelemetry-v2-operator). The condensed CLI flow is:
 
 1. Confirm the available v2 Operator versions:
 

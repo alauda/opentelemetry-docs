@@ -2,25 +2,25 @@
 weight: 10
 ---
 
-# Installing Alauda Build of OpenTelemetry v2
+# Installing Alauda Container Platform Application Observability
 
-Installing the Alauda Build of OpenTelemetry v2 consists of the following steps:
+Installing the Alauda Container Platform Application Observability consists of the following steps:
 
-- Installing the Alauda Build of OpenTelemetry v2 Operator
+- Installing the Alauda Container Platform Application Observability Operator
 - Creating a namespace for the OpenTelemetry Collector
 - Deploying the OpenTelemetry Collector instance
 
 :::note
-Starting in ACP 4.5, **Alauda Build of OpenTelemetry v2** is named **Alauda Container Platform Application Observability**. Search for **Alauda Container Platform Application Observability** when you download the plugin from the Customer Portal. A plugin package published before the rename still shows **Alauda Build of OpenTelemetry v2** in the platform after you upload it.
+Starting in ACP 4.5, **Alauda Container Platform Application Observability** (previously **Alauda Build of OpenTelemetry v2**) is the product name. Search for **Alauda Container Platform Application Observability** when you download the plugin from the Customer Portal. A plugin package published before the rename still shows **Alauda Build of OpenTelemetry v2** in the platform after you upload it.
 :::
 
 :::warning
-- Do not install `Alauda Build of OpenTelemetry` and `Alauda Build of OpenTelemetry v2` in the same Kubernetes cluster, as this will result in functional conflicts.
-- Do not install `Alauda Service Mesh` and `Alauda Build of OpenTelemetry v2` in the same Kubernetes cluster, as this will result in functional conflicts (`Alauda Service Mesh v2` supports integration with `Alauda Build of OpenTelemetry v2`).
+- Do not install `Alauda Build of OpenTelemetry` and `Alauda Container Platform Application Observability` in the same Kubernetes cluster, as this will result in functional conflicts.
+- Do not install `Alauda Service Mesh` and `Alauda Container Platform Application Observability` in the same Kubernetes cluster, as this will result in functional conflicts (`Alauda Service Mesh v2` supports integration with `Alauda Container Platform Application Observability`).
 - Do not deploy the OpenTelemetry Collector in the same namespace as the Operator. Create a separate namespace for the Collector instance.
 :::
 
-## Installing the Alauda Build of OpenTelemetry v2 Operator \{#installing-the-alauda-build-of-opentelemetry-v2-operator}
+## Installing the Alauda Container Platform Application Observability Operator \{#installing-the-alauda-build-of-opentelemetry-v2-operator}
 
 ### Installing via the web console \{#installing-via-the-web-console}
 
@@ -37,7 +37,7 @@ Starting in ACP 4.5, **Alauda Build of OpenTelemetry v2** is named **Alauda Cont
 4. Locate the **Alauda Container Platform Application Observability** plugin (or **Alauda Build of OpenTelemetry v2**), and click to select it.
 5. Click **Install**.
 6. On the **Install Alauda Container Platform Application Observability** dialogue (titled **Install Alauda Build of OpenTelemetry v2** for a package published before the rename), perform the following steps:
-   1. Select the **stable** channel to install the latest stable version of the Alauda Build of OpenTelemetry v2 Operator.
+   1. Select the **stable** channel to install the latest stable version of the Alauda Container Platform Application Observability Operator.
 7. Click **Install** and **Confirm** to install the Operator.
 
 **Verification**
@@ -192,7 +192,7 @@ kubectl -n opentelemetry-operator2 get csv
 
 ```bash {name=install-otel:check-csv-status-output}
 NAME                                    DISPLAY                                  VERSION      REPLACES   PHASE
-opentelemetry-operator2.v0.157.0-r1     Alauda Build of OpenTelemetry v2         0.157.0-r1              Succeeded
+opentelemetry-operator2.v0.157.0-r1     Alauda Container Platform Application Observability         0.157.0-r1              Succeeded
 ```
 
 **Fields**
@@ -205,7 +205,7 @@ opentelemetry-operator2.v0.157.0-r1     Alauda Build of OpenTelemetry v2        
 
 ## Deploying the OpenTelemetry Collector \{#deploying-the-opentelemetry-collector}
 
-After successfully installing the Alauda Build of OpenTelemetry v2 Operator, deploy the OpenTelemetry Collector by creating an `OpenTelemetryCollector` custom resource.
+After successfully installing the Alauda Container Platform Application Observability Operator, deploy the OpenTelemetry Collector by creating an `OpenTelemetryCollector` custom resource.
 
 :::note
 Multiple OpenTelemetry Collector instances can coexist in separate namespaces. Each instance is independent and managed by the Operator.
@@ -378,4 +378,4 @@ otel-collector-7877b4cdcf-bj7br   1/1     Running   0          69s
 
 ## Uninstalling
 
-To remove the Alauda Distributed Tracing components from your cluster, follow [Uninstalling Alauda Build of OpenTelemetry v2](../uninstalling/uninstalling-opentelemetry.mdx).
+To remove the Alauda Distributed Tracing components from your cluster, follow [Uninstalling Alauda Container Platform Application Observability](../uninstalling/uninstalling-opentelemetry.mdx).

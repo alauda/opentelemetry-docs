@@ -1,6 +1,6 @@
 # opentelemetry-docs
 
-Documentation for Alauda Build of OpenTelemetry v2
+Documentation for Alauda Container Platform Application Observability
 
 ## Documentation Dependencies
 
@@ -23,7 +23,7 @@ $ yarn install
 
 ### OTel 版本号更新
 
-当 Alauda Build of OpenTelemetry 发布新版本时，使用 `hack/update-otel-version.sh` 批量更新 `./docs/en/` 下所有 `.mdx` 文档中出现的旧版本号。脚本同时适用于 Operator 版本与 Collector 版本。
+当 Alauda Container Platform Application Observability 发布新版本时，使用 `hack/update-otel-version.sh` 批量更新 `./docs/en/` 下所有 `.mdx` 文档中出现的旧版本号。脚本同时适用于 Operator 版本与 Collector 版本。
 
 #### 用法
 

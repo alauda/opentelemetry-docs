@@ -4,7 +4,7 @@ weight: 30
 
 # Creating the Required RBAC Resources Automatically
 
-The Alauda Build of OpenTelemetry v2 Operator automatically creates the necessary cluster-level RBAC resources when certain Collector components require access to Kubernetes resources across the cluster. For some components, such as the `k8s_attributes` processor or the `k8s_objects` receiver, additional RBAC permissions are needed beyond the default Operator scope.
+The Alauda Container Platform Application Observability Operator automatically creates the necessary cluster-level RBAC resources when certain Collector components require access to Kubernetes resources across the cluster. For some components, such as the `k8s_attributes` processor or the `k8s_objects` receiver, additional RBAC permissions are needed beyond the default Operator scope.
 
 ## Automatic RBAC creation
 
@@ -76,7 +76,7 @@ If creating a Collector fails with a permissions error even though the Operator 
     EOF
     ```
 
-3. _(Optional)_ Restart the Alauda Build of OpenTelemetry v2 Operator to pick up the new RBAC permissions:
+3. _(Optional)_ Restart the Alauda Container Platform Application Observability Operator to pick up the new RBAC permissions:
 
     :::tip
     This step is only required if the Operator was already running before you created the `ClusterRole` and `ClusterRoleBinding`. If you created them **before** installing the Operator, you can skip this step.

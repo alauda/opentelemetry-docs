@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Alauda Build of OpenTelemetry v2 卸载文档测试脚本
+# Alauda Container Platform Application Observability 卸载文档测试脚本
 # 对应文档: docs/en/uninstalling/uninstalling-opentelemetry.mdx
 # 覆盖范围: 「Uninstalling via the CLI」+「Deleting OpenTelemetry custom resource definitions」
 #           （web console 章节为 UI 操作不可自动化）
@@ -72,10 +72,10 @@ _delete_namespaced_by_template() {
     return 0
 }
 
-# 测试函数：卸载 Alauda Build of OpenTelemetry v2
+# 测试函数：卸载 Alauda Container Platform Application Observability
 test_uninstalling_opentelemetry() {
     log_info "=========================================="
-    log_info "开始 Alauda Build of OpenTelemetry v2 卸载测试"
+    log_info "开始 Alauda Container Platform Application Observability 卸载测试"
     log_info "=========================================="
 
     # 步骤 1: 查询并删除所有 Instrumentation
@@ -123,7 +123,7 @@ test_uninstalling_opentelemetry() {
     fi
 
     log_success "=========================================="
-    log_success "Alauda Build of OpenTelemetry v2 卸载测试完成"
+    log_success "Alauda Container Platform Application Observability 卸载测试完成"
     log_success "=========================================="
     return 0
 }

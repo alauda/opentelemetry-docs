@@ -15,7 +15,7 @@
 #
 # 前置:
 #   1. 已执行 rbac-resources 测试（授予 Operator 管理集群级 RBAC 的权限）；
-#   2. 已安装 Alauda Build of OpenTelemetry v2 Operator。
+#   2. 已安装 Alauda Container Platform Application Observability Operator。
 
 set -e
 
