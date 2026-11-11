@@ -1,9 +1,9 @@
 {
   "version": 1,
   "generator_version": 3,
-  "project_name": "Alauda Build of OpenTelemetry v2 Documentation",
-  "summary": "Documentation for Alauda Build of OpenTelemetry v2 — a Kubernetes-native distribution of OpenTelemetry that provides unified collection, processing, and forwarding of telemetry data (metrics, traces, logs) with automated workload instrumentation.",
-  "generated_at": "2026-05-16T09:38:59Z",
+  "project_name": "Alauda Container Platform Application Observability Documentation",
+  "summary": "Documentation for Alauda Container Platform Application Observability — a Kubernetes-native distribution of OpenTelemetry that provides unified collection, processing, and forwarding of telemetry data (metrics, traces, logs) with automated workload instrumentation.",
+  "generated_at": "2026-11-10T15:06:57Z",
   "include_patterns": [
     "**/*.md",
     "**/*.mdx"
@@ -27,49 +27,49 @@
     "README.md": {
       "sha256": "1a45a5dbf4cd57679ed6d5e6aa80a913acb3e276358869cf8dbe63f65f8ff05f",
       "size": 883,
-      "description": "Repository readme for the Alauda Build of OpenTelemetry v2 documentation site. Lists Node.js and npm prerequisites, instructs contributors to install dependencies with `yarn install`, recommends VS Code with the MDX extension, and documents the `yarn dev`, `yarn build`, and `yarn serve` commands for running the local dev server, building static output to `dist`, and previewing the build.",
+      "description": "Repository readme for the Alauda Container Platform Application Observability documentation site. Lists Node.js and npm prerequisites, instructs contributors to install dependencies with `yarn install`, recommends VS Code with the MDX extension, and documents the `yarn dev`, `yarn build`, and `yarn serve` commands for running the local dev server, building static output to `dist`, and previewing the build.",
       "generation_method": "ai_agent_reading",
       "updated_at": "2026-05-16T09:38:59Z"
     },
     "docs/en/about/about-opentelemetry.mdx": {
       "sha256": "ce5ecef960b87d483a0483ff6d979a690f711b04e4c404d6926cb66c1d030099",
       "size": 2986,
-      "description": "Overview of Alauda Build of OpenTelemetry v2, a vendor-neutral distribution of the upstream OpenTelemetry project for cloud-native telemetry collection. Describes the OpenTelemetry Collector's multi-format receiving, processing, and exporting capabilities, agent/gateway deployment topologies, auto-instrumentation, common use cases such as protocol translation and backend abstraction, and integration with Alauda Build of Jaeger; warns that OpenTelemetry provides no delivery guarantees, storage, or query backend.",
+      "description": "Overview of Alauda Container Platform Application Observability, a vendor-neutral distribution of the upstream OpenTelemetry project for cloud-native telemetry collection. Describes the OpenTelemetry Collector's multi-format receiving, processing, and exporting capabilities, agent/gateway deployment topologies, auto-instrumentation, common use cases such as protocol translation and backend abstraction, and integration with Alauda Build of Jaeger; warns that OpenTelemetry provides no delivery guarantees, storage, or query backend.",
       "generation_method": "ai_agent_reading",
       "updated_at": "2026-05-16T09:38:59Z"
     },
     "docs/en/about/index.mdx": {
       "sha256": "32135b5d0326b32d1fa3c82d8616699c1c980db0cc16e3f5971b0787c3b144b3",
       "size": 63,
-      "description": "Top-level landing page for the About section of the Alauda Build of OpenTelemetry v2 documentation, rendering an auto-generated `<Overview />` index of child pages such as the product overview, lifecycle policy, and release notes.",
+      "description": "Top-level landing page for the About section of the Alauda Container Platform Application Observability documentation, rendering an auto-generated `<Overview />` index of child pages such as the product overview, lifecycle policy, and release notes.",
       "generation_method": "ai_agent_reading",
       "updated_at": "2026-05-16T09:38:59Z"
     },
     "docs/en/about/lifecycle-policy/alauda-build-of-opentelemetry.mdx": {
       "sha256": "20f33ed70aac89aa0ec2b8ba7e4a4ed3c1c53c0f065e0fcc218d78664dec3f63",
       "size": 953,
-      "description": "Lifecycle policy table for the Alauda Build of OpenTelemetry v2 Operator, showing v2.0.z released 2026-04-21 with end of support 2027-10-21. States that a new operator version ships every 4 months with 18 months of maintenance including patch tracking, security updates compliant with Alauda standards, and upgrade assistance.",
+      "description": "Lifecycle policy table for the Alauda Container Platform Application Observability Operator, showing v2.0.z released 2026-04-21 with end of support 2027-10-21. States that a new operator version ships every 4 months with 18 months of maintenance including patch tracking, security updates compliant with Alauda standards, and upgrade assistance.",
       "generation_method": "ai_agent_reading",
       "updated_at": "2026-05-16T09:38:59Z"
     },
     "docs/en/about/lifecycle-policy/index.mdx": {
       "sha256": "b5b8cb22343ad480b4cea3f329e7d1c78c1f6f7bfb73a2c3b3dd72d1a1ce485d",
       "size": 139,
-      "description": "Section index page for the Lifecycle Policy area of the docs, rendering an `<Overview />` listing of policy documents that detail supported versions and maintenance windows for the Alauda Build of OpenTelemetry v2 Operator.",
+      "description": "Section index page for the Lifecycle Policy area of the docs, rendering an `<Overview />` listing of policy documents that detail supported versions and maintenance windows for the Alauda Container Platform Application Observability Operator.",
       "generation_method": "ai_agent_reading",
       "updated_at": "2026-05-16T09:38:59Z"
     },
     "docs/en/about/release-notes/index.mdx": {
       "sha256": "4ca3787451713a6c4e25c23d4adbfb32937cb22c418de081f4d9b6c6b5e82538",
       "size": 165,
-      "description": "Section index page for Release Notes, surfacing an `<Overview />` list of per-version release announcement pages for Alauda Build of OpenTelemetry v2.",
+      "description": "Section index page for Release Notes, surfacing an `<Overview />` list of per-version release announcement pages for Alauda Container Platform Application Observability.",
       "generation_method": "ai_agent_reading",
       "updated_at": "2026-05-16T09:38:59Z"
     },
     "docs/en/about/release-notes/v2-0-0.mdx": {
       "sha256": "4bce7f87657bea87b56ce1fb267b90b4b1deaec865bd326370806b595686fa58",
       "size": 3082,
-      "description": "Release notes for Alauda Build of OpenTelemetry v2.0.0, the first independent release shipped via Operator 0.147.0 aligned with upstream OpenTelemetry Collector 0.147.0. Enumerates supported components — 14 receivers (OTLP, Jaeger, Prometheus, Kafka, Filelog, Kubernetes Objects, etc.), 14 processors (Batch, Memory Limiter, Tail Sampling, Transform, k8sattributes, etc.), 8 exporters, 4 connectors, 8 extensions — plus auto-instrumentation for Java, Python, Node.js, .NET, Go, and Apache HTTPD, and the four `OpenTelemetryCollector` deployment modes (Deployment, StatefulSet, DaemonSet, Sidecar).",
+      "description": "Release notes for Alauda Container Platform Application Observability.0.0, the first independent release shipped via Operator 0.147.0 aligned with upstream OpenTelemetry Collector 0.147.0. Enumerates supported components — 14 receivers (OTLP, Jaeger, Prometheus, Kafka, Filelog, Kubernetes Objects, etc.), 14 processors (Batch, Memory Limiter, Tail Sampling, Transform, k8sattributes, etc.), 8 exporters, 4 connectors, 8 extensions — plus auto-instrumentation for Java, Python, Node.js, .NET, Go, and Apache HTTPD, and the four `OpenTelemetryCollector` deployment modes (Deployment, StatefulSet, DaemonSet, Sidecar).",
       "generation_method": "ai_agent_reading",
       "updated_at": "2026-05-16T09:38:59Z"
     },
@@ -144,11 +144,11 @@
       "updated_at": "2026-05-16T09:38:59Z"
     },
     "docs/en/configuration/collector/index.mdx": {
-      "sha256": "56fe3201114dff01fec6d9c4f01af8757feb1766eaa487416b32168c6fb178f2",
-      "size": 574,
-      "description": "Landing page for configuring the OpenTelemetry Collector via the Alauda build of OpenTelemetry v2 Operator CRD, which defines architecture and deployment settings. Introduces deployment strategies, per-component configuration, and resource management with the option to use defaults or customize for specific requirements.",
+      "sha256": "db0aefe5f9f57bf42453b8e7b491edd4fe2d9ded48c93e9fb407a82188414c04",
+      "size": 593,
+      "description": "Landing page for configuring the OpenTelemetry Collector via the Alauda Container Platform Application Observability Operator CRD, which defines architecture and deployment settings. Introduces deployment strategies, per-component configuration, and resource management with the option to use defaults or customize for specific requirements.",
       "generation_method": "ai_agent_reading",
-      "updated_at": "2026-05-16T09:38:59Z"
+      "updated_at": "2026-11-10T15:06:57Z"
     },
     "docs/en/configuration/collector/processors.mdx": {
       "sha256": "7a6fc79a00b4f07cc761d15baef4c376ae1835ed12d267619be238b6f392b933",
@@ -188,7 +188,7 @@
     "docs/en/configuration/index.mdx": {
       "sha256": "0e422647a40636bb6ce40db4321bedea189ec4e67b9a02eb51467fd33e391b5d",
       "size": 168,
-      "description": "Top-level index for the Alauda Build of OpenTelemetry v2 configuration documentation, linking to Collector, instrumentation, and telemetry-forwarding subsections via the `Overview` component.",
+      "description": "Top-level index for the Alauda Container Platform Application Observability configuration documentation, linking to Collector, instrumentation, and telemetry-forwarding subsections via the `Overview` component.",
       "generation_method": "ai_agent_reading",
       "updated_at": "2026-05-16T09:38:59Z"
     },
@@ -200,11 +200,11 @@
       "updated_at": "2026-05-16T09:38:59Z"
     },
     "docs/en/configuration/instrumentation/auto-instrumentation.mdx": {
-      "sha256": "69b2420209d7c28a8f526ab2a0ab2f0546fe7e57fb347dee1f7776d427ba409e",
-      "size": 3079,
-      "description": "Explains how the Alauda OpenTelemetry v2 Operator uses Kubernetes admission webhooks to inject instrumentation: an init container copies SDK libraries into a shared volume, then the app container loads them at startup with auto-configured environment variables. Lists supported runtimes (Apache HTTPD, .NET, Go, Java, Node.js, Python), the workflow of creating an `Instrumentation` CR plus pod/namespace annotation, and the benefits (zero code change, consistent telemetry, easy SDK updates).",
+      "sha256": "5ab3c65d88f1b50f4b2bf460ce850cdd5bfcc55dc11428961164920bb32ba576",
+      "size": 3117,
+      "description": "Explains how the Alauda Container Platform Application Observability Operator uses Kubernetes admission webhooks to inject instrumentation: an init container copies SDK libraries into a shared volume, then the app container loads them at startup with auto-configured environment variables. Lists supported runtimes (Apache HTTPD, .NET, Go, Java, Node.js, Python), the workflow of creating an `Instrumentation` CR plus pod/namespace annotation, and the benefits (zero code change, consistent telemetry, easy SDK updates).",
       "generation_method": "ai_agent_reading",
-      "updated_at": "2026-05-16T09:38:59Z"
+      "updated_at": "2026-11-10T15:06:57Z"
     },
     "docs/en/configuration/instrumentation/dotnet-instrumentation.mdx": {
       "sha256": "e79a80fca0022b76e8a5303b22433b7ef40f452604d7968eaae2392dd5b1a818",
@@ -228,18 +228,18 @@
       "updated_at": "2026-05-16T09:38:59Z"
     },
     "docs/en/configuration/instrumentation/index.mdx": {
-      "sha256": "3bf3683bb21aca0435f2d144d2d6d70d6713c11dc0cc9e1397f3007da454752f",
-      "size": 630,
-      "description": "Section overview introducing the Alauda OpenTelemetry v2 Operator's automatic instrumentation, which injects OpenTelemetry libraries into application containers without code changes. Frames the subsections covering language-specific settings, SDK variables, exporter configuration, and advanced deployment scenarios.",
+      "sha256": "51785d0e1d359dc47e41b5718fde88ecf9672fd6aa341e89dbd075e6872a70c1",
+      "size": 649,
+      "description": "Section overview introducing the Alauda Container Platform Application Observability Operator's automatic instrumentation, which injects OpenTelemetry libraries into application containers without code changes. Frames the subsections covering language-specific settings, SDK variables, exporter configuration, and advanced deployment scenarios.",
       "generation_method": "ai_agent_reading",
-      "updated_at": "2026-05-16T09:38:59Z"
+      "updated_at": "2026-11-10T15:06:57Z"
     },
     "docs/en/configuration/instrumentation/instrumentation-options.mdx": {
-      "sha256": "316c3ee1c6f60441d7ef3d59dad310280cbb5ce8a3aaa295da3347c3e0a07606",
-      "size": 8094,
-      "description": "Reference for the `Instrumentation` custom resource (apiVersion `opentelemetry.io/v1alpha1`) used by the Alauda build of OpenTelemetry v2 Operator to control auto-injection: exporter endpoint, propagators (`tracecontext`, `baggage`, `b3`, `b3multi`, `jaeger`, `ottrace`), samplers like `parentbased_traceidratio`, and language-specific blocks (`java`, `python`, `dotnet`, `go`, `nodejs`, `apacheHttpd`). Documents annotation-driven injection via `instrumentation.opentelemetry.io/inject-<language>` and `inject-sdk`, supported values (`true`, `false`, `<name>`, `<namespace>/<name>`), namespace-level annotations, init-container resource limits, default OTLP protocols per language (gRPC port 4317 vs HTTP 4318), and selective injection through `container-names`.",
+      "sha256": "bc7846dbf34dd4359ebf7b59f0b3bec95e79e9ce505290f7134d097c1c5fc16e",
+      "size": 9991,
+      "description": "Reference for the `Instrumentation` custom resource (apiVersion `opentelemetry.io/v1alpha1`) used by the Alauda Container Platform Application Observability Operator to control auto-injection: exporter endpoint, propagators (`tracecontext`, `baggage`, `b3`, `b3multi`, `jaeger`, `ottrace`), samplers like `parentbased_traceidratio`, and language-specific blocks (`java`, `python`, `dotnet`, `go`, `nodejs`, `apacheHttpd`). Documents annotation-driven injection via `instrumentation.opentelemetry.io/inject-<language>` and `inject-sdk`, supported values (`true`, `false`, `<name>`, `<namespace>/<name>`), namespace-level annotations, init-container resource limits, default OTLP protocols per language (gRPC port 4317 vs HTTP 4318), and selective injection through `container-names`.",
       "generation_method": "ai_agent_reading",
-      "updated_at": "2026-05-16T09:38:59Z"
+      "updated_at": "2026-11-10T15:06:57Z"
     },
     "docs/en/configuration/instrumentation/java-instrumentation.mdx": {
       "sha256": "dcf4c518862c5d87c0e0d2a8fe0fc8d90b5024b49a207f97ea6f704aa6bbf99f",
@@ -284,11 +284,11 @@
       "updated_at": "2026-05-16T09:38:59Z"
     },
     "docs/en/configuration/monitoring-stack-metrics/index.mdx": {
-      "sha256": "57f75c27cd74a0d4d90c60482823e81a6f92c4e2dd86d976620d5b5ee9bf5dd3",
-      "size": 4353,
+      "sha256": "870a65cdf60e342d5b7a4f27d612e394399938f9bd61d9a18cda42567a161767",
+      "size": 4641,
       "description": "Integrates the OpenTelemetry Collector with the platform monitoring stack so Prometheus scrapes both the Collector's internal telemetry endpoint and any Prometheus exporter pipeline endpoints. Enabling `spec.observability.metrics.enableMetrics: true` on the `OpenTelemetryCollector` CR makes the Operator auto-create two `ServiceMonitor` resources (`<instance>-collector-monitoring` for operational metrics and `<instance>-collector` for exporter metrics); the `prometheus: kube-prometheus` label is required by ACP Prometheus. Also shows a manually authored `PodMonitor` with `labeldrop` relabelings on `pod`, `container`, `endpoint`, `instance`, and `job` to suppress duplicate labels introduced by scraping the `metrics` and `promexporter` ports.",
       "generation_method": "ai_agent_reading",
-      "updated_at": "2026-05-16T09:38:59Z"
+      "updated_at": "2026-11-10T15:06:57Z"
     },
     "docs/en/configuration/send-telemetry-data/index.mdx": {
       "sha256": "0bcfefcb2a42f3a1af069de2f1ec4506fe30aac323b78acf10476815f3f08ff3",
@@ -298,11 +298,11 @@
       "updated_at": "2026-05-16T09:38:59Z"
     },
     "docs/en/configuration/send-telemetry-data/sidecar-injection.mdx": {
-      "sha256": "2e2adb09472c8b097a07b49f95193290789fa8de58135d6de3e1c060edc16c20",
-      "size": 2724,
-      "description": "Step-by-step procedure for sending traces to the Collector via sidecar injection: create an `OpenTelemetryCollector` CR with `mode: sidecar` (OTLP gRPC/HTTP receivers, `memory_limiter` plus `batch` processors, OTLP exporter pointed at the Alauda Build of Jaeger v2 collector service like `jaeger-<example>-collector:4317` with `tls.insecure: true`), then add the `sidecar.opentelemetry.io/inject: \"true\"` annotation to the application Deployment's pod template so the Operator injects the Collector container into each pod. Prerequisites include the Alauda OpenTelemetry v2 Operator, Alauda Build of Jaeger v2, and `cluster-admin` kubectl access.",
+      "sha256": "0e4da690b674950e53a84016ef2e9805c3c2d9f58224467ac519d0eed06580d8",
+      "size": 3525,
+      "description": "Step-by-step procedure for sending traces to the Collector via sidecar injection: create an `OpenTelemetryCollector` CR with `mode: sidecar` (OTLP gRPC/HTTP receivers, `memory_limiter` plus `batch` processors, OTLP exporter pointed at the Alauda Build of Jaeger v2 collector service like `jaeger-<example>-collector:4317` with `tls.insecure: true`), then add the `sidecar.opentelemetry.io/inject: \"true\"` annotation to the application Deployment's pod template so the Operator injects the Collector container into each pod. Prerequisites include the Alauda Container Platform Application Observability Operator, Alauda Build of Jaeger v2, and `cluster-admin` kubectl access.",
       "generation_method": "ai_agent_reading",
-      "updated_at": "2026-05-16T09:38:59Z"
+      "updated_at": "2026-11-10T15:06:57Z"
     },
     "docs/en/configuration/send-telemetry-data/without-sidecar.mdx": {
       "sha256": "d437eca0cac3725a108d5848626ac810fc5e8fb4052c4d4eebeffcc094169038",
@@ -321,21 +321,21 @@
     "docs/en/installing/index.mdx": {
       "sha256": "04890bb9f3ab5979f1202a4ccc1d30e4dba1eec7b3a5b676c1258c06142f4895",
       "size": 426,
-      "description": "Landing page for the Installing section, enumerating the install workflow for the Alauda Build of OpenTelemetry v2: installing the Operator via the web console or CLI, deploying the OpenTelemetry Collector, configuring taints and tolerations for dedicated nodes, and automatically creating the required cluster-level RBAC resources.",
+      "description": "Landing page for the Installing section, enumerating the install workflow for the Alauda Container Platform Application Observability: installing the Operator via the web console or CLI, deploying the OpenTelemetry Collector, configuring taints and tolerations for dedicated nodes, and automatically creating the required cluster-level RBAC resources.",
       "generation_method": "ai_agent_reading",
       "updated_at": "2026-05-16T09:38:59Z"
     },
     "docs/en/installing/install-opentelemetry.mdx": {
       "sha256": "ad797d7dba3131082600d03bb80de83892d583ca3622e2b61d9bfb7523b71b07",
       "size": 13164,
-      "description": "End-to-end installation procedure for the Alauda Build of OpenTelemetry v2 Operator and a Collector instance. Covers OperatorHub-based install via the ACP web console (selecting the `stable` channel) and CLI install (querying `packagemanifest opentelemetry-operator2`, creating the `opentelemetry-operator2` namespace, applying a `Subscription` with `installPlanApproval: Manual` from the `platform` catalogSource in `cpaas-system`, approving the InstallPlan, and waiting for the CSV to reach `Succeeded`). Then deploys an `OpenTelemetryCollector` CR (`mode: deployment`) with OTLP/Jaeger/Zipkin receivers, `batch`/`memory_limiter` processors, and a `debug` exporter, into a dedicated namespace. Warns against co-installing the older OpenTelemetry build or Alauda Service Mesh, and against deploying the Collector in the Operator's namespace.",
+      "description": "End-to-end installation procedure for the Alauda Container Platform Application Observability Operator and a Collector instance. Covers OperatorHub-based install via the ACP web console (selecting the `stable` channel) and CLI install (querying `packagemanifest opentelemetry-operator2`, creating the `opentelemetry-operator2` namespace, applying a `Subscription` with `installPlanApproval: Manual` from the `platform` catalogSource in `cpaas-system`, approving the InstallPlan, and waiting for the CSV to reach `Succeeded`). Then deploys an `OpenTelemetryCollector` CR (`mode: deployment`) with OTLP/Jaeger/Zipkin receivers, `batch`/`memory_limiter` processors, and a `debug` exporter, into a dedicated namespace. Warns against co-installing the older OpenTelemetry build or Alauda Service Mesh, and against deploying the Collector in the Operator's namespace.",
       "generation_method": "ai_agent_reading",
       "updated_at": "2026-05-16T09:38:59Z"
     },
     "docs/en/installing/rbac-resources.mdx": {
       "sha256": "9e4120cde487317884fc76785caf858eb200c20bc801f23ba641f8b6a129c562",
       "size": 2999,
-      "description": "Procedure to grant the Alauda Build of OpenTelemetry v2 Operator permission to create cluster-scoped RBAC for Collector components that need it: the `k8sattributes` processor (querying Pods, Namespaces, Nodes, ReplicaSets, Deployments), `k8sobjects` receiver (watching Events/Pods/Nodes), `kubeletstats` receiver (kubelet endpoint access), and `resourcedetection` processor (Node access). Applies a `generate-processors-rbac` ClusterRole granting verbs (create/delete/get/list/patch/update/watch) on `clusterroles` and `clusterrolebindings`, binds it to the `opentelemetry-operator-controller-manager` ServiceAccount in `opentelemetry-operator2`, and optionally restarts the Operator pod so it picks up the new permissions.",
+      "description": "Procedure to grant the Alauda Container Platform Application Observability Operator permission to create cluster-scoped RBAC for Collector components that need it: the `k8sattributes` processor (querying Pods, Namespaces, Nodes, ReplicaSets, Deployments), `k8sobjects` receiver (watching Events/Pods/Nodes), `kubeletstats` receiver (kubelet endpoint access), and `resourcedetection` processor (Node access). Applies a `generate-processors-rbac` ClusterRole granting verbs (create/delete/get/list/patch/update/watch) on `clusterroles` and `clusterrolebindings`, binds it to the `opentelemetry-operator-controller-manager` ServiceAccount in `opentelemetry-operator2`, and optionally restarts the Operator pod so it picks up the new permissions.",
       "generation_method": "ai_agent_reading",
       "updated_at": "2026-05-16T09:38:59Z"
     },
@@ -370,7 +370,7 @@
     "docs/en/troubleshooting/index.mdx": {
       "sha256": "4083376aa59cfd5862ed0533327be13aef150e07494041bb12e908e0ed250a62",
       "size": 593,
-      "description": "Landing page for the Alauda Build of OpenTelemetry v2 troubleshooting section, framing the available approaches for diagnosing the OpenTelemetry Collector and instrumentation components. Renders a child-page overview covering log collection, metrics exposure, debugging tools, and network policy configuration to monitor Collector health and telemetry transmission.",
+      "description": "Landing page for the Alauda Container Platform Application Observability troubleshooting section, framing the available approaches for diagnosing the OpenTelemetry Collector and instrumentation components. Renders a child-page overview covering log collection, metrics exposure, debugging tools, and network policy configuration to monitor Collector health and telemetry transmission.",
       "generation_method": "ai_agent_reading",
       "updated_at": "2026-05-16T09:38:59Z"
     },
@@ -384,14 +384,14 @@
     "docs/en/uninstalling/index.mdx": {
       "sha256": "826cc4d1f6fc5c50852ca9159e6f49f7381fb2ff7edb3d2bb6f1cd3be725d7e7",
       "size": 168,
-      "description": "Section landing page for uninstalling the Alauda Build of OpenTelemetry v2, rendering an overview of child topics covering Operator removal and optional CRD cleanup from an Alauda Container Platform cluster.",
+      "description": "Section landing page for uninstalling the Alauda Container Platform Application Observability, rendering an overview of child topics covering Operator removal and optional CRD cleanup from an Alauda Container Platform cluster.",
       "generation_method": "ai_agent_reading",
       "updated_at": "2026-05-16T09:38:59Z"
     },
     "docs/en/uninstalling/uninstalling-opentelemetry.mdx": {
       "sha256": "5a476487abdc2ffc961c520dfbbe7591404311f7d40d06a8a65ac8b67567a380",
       "size": 5658,
-      "description": "Removes the Alauda Build of OpenTelemetry v2 Operator from ACP via either the web console (OperatorHub > All Instances > filter by `Instrumentation` then `OpenTelemetryCollector`, then click Uninstall) or the CLI (`kubectl delete instrumentation`, `kubectl delete opentelemetrycollector`, then `kubectl delete subscription opentelemetry-operator2 -n opentelemetry-operator2`). Closes with an optional CRD purge via `kubectl get crds -oname | grep opentelemetry.io | xargs kubectl delete`, noting that uninstalling the Operator does not automatically remove CRDs or managed resource instances.",
+      "description": "Removes the Alauda Container Platform Application Observability Operator from ACP via either the web console (OperatorHub > All Instances > filter by `Instrumentation` then `OpenTelemetryCollector`, then click Uninstall) or the CLI (`kubectl delete instrumentation`, `kubectl delete opentelemetrycollector`, then `kubectl delete subscription opentelemetry-operator2 -n opentelemetry-operator2`). Closes with an optional CRD purge via `kubectl get crds -oname | grep opentelemetry.io | xargs kubectl delete`, noting that uninstalling the Operator does not automatically remove CRDs or managed resource instances.",
       "generation_method": "ai_agent_reading",
       "updated_at": "2026-05-16T09:38:59Z"
     }

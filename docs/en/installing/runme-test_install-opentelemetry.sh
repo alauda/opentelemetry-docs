@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Alauda Build of OpenTelemetry v2 安装文档测试脚本
+# Alauda Container Platform Application Observability 安装文档测试脚本
 # 对应文档: docs/en/installing/install-opentelemetry.mdx
 # 覆盖范围:
-#   1. 「Installing the Alauda Build of OpenTelemetry v2 Operator」章节（CLI 安装）
+#   1. 「Installing the Alauda Container Platform Application Observability Operator」章节（CLI 安装）
 #   2. 「Deploying the OpenTelemetry Collector」章节（CLI 部署）
 
 set -e
@@ -23,17 +23,17 @@ source "$FRAMEWORK_ROOT/framework/verify.sh"
 #   wait-collector-ready / check-collector-pods(+output)
 test_install_opentelemetry() {
     log_info "=========================================="
-    log_info "开始 Alauda Build of OpenTelemetry v2 安装测试"
+    log_info "开始 Alauda Container Platform Application Observability 安装测试"
     log_info "=========================================="
 
     # 步骤 1: 安装 Operator
-    log_info "阶段 1: 安装 Alauda Build of OpenTelemetry v2 Operator"
+    log_info "阶段 1: 安装 Alauda Container Platform Application Observability Operator"
     install_operator \
         "opentelemetry-operator2" \
         "opentelemetry-operator2" \
         "$PKG_OPENTELEMETRY_OPERATOR2_URL" \
         "install-otel" || {
-        log_error "Alauda Build of OpenTelemetry v2 Operator 安装失败"
+        log_error "Alauda Container Platform Application Observability Operator 安装失败"
         return 1
     }
 
@@ -87,7 +87,7 @@ EOF
     log_success "Collector Pod 状态验证通过"
 
     log_success "=========================================="
-    log_success "Alauda Build of OpenTelemetry v2 安装测试完成（Operator + Collector）"
+    log_success "Alauda Container Platform Application Observability 安装测试完成（Operator + Collector）"
     log_success "=========================================="
     return 0
 }

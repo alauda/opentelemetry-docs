@@ -2,11 +2,11 @@
 weight: 10
 ---
 
-# Upgrading Alauda Build of OpenTelemetry v2
+# Upgrading Alauda Container Platform Application Observability
 
 Upgrading from v2.0 (Operator 0.147.0, Collector 0.147.0) to v2.1 (Operator 0.157.0, Collector 0.158.0) involves the following steps:
 
-1. Upgrading the Alauda Build of OpenTelemetry v2 Operator
+1. Upgrading the Alauda Container Platform Application Observability Operator
 2. Updating the OpenTelemetry Collector configuration
 
 :::note
@@ -15,7 +15,7 @@ Upstream renamed most component types in this release, but the previous names re
 
 **Prerequisites**
 
-- An Alauda Build of OpenTelemetry v2.0 deployment installed as described in [Installing Alauda Build of OpenTelemetry v2](../installing/install-opentelemetry.mdx).
+- An Alauda Container Platform Application Observability 2.0 deployment installed as described in [Installing Alauda Container Platform Application Observability](../installing/install-opentelemetry.mdx).
 - The **Alauda Container Platform Application Observability** (previously **Alauda Build of OpenTelemetry v2**) Operator 0.157.0 is published to the platform.
 - An active ACP CLI (`kubectl`) session by a cluster administrator with the `cluster-admin` role.
 - Review the [Upgrade Notes](../about/release-notes/v2-1-0.mdx#upgrade-notes) for the behavior changes introduced by this release.
@@ -70,7 +70,7 @@ Choose one of the following methods:
 
     ```text {name=upgrade-otel:verify-operator-csv-output}
     NAME                                  DISPLAY                            VERSION      REPLACES                              PHASE
-    opentelemetry-operator2.v0.157.0-r1   Alauda Build of OpenTelemetry v2   0.157.0-r1   opentelemetry-operator2.v0.147.0-r0   Succeeded
+    opentelemetry-operator2.v0.157.0-r1   Alauda Container Platform Application Observability   0.157.0-r1   opentelemetry-operator2.v0.147.0-r0   Succeeded
     ```
 
 **Verification**

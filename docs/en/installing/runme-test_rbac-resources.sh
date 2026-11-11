@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Alauda Build of OpenTelemetry v2「自动创建 RBAC 资源」文档测试脚本
+# Alauda Container Platform Application Observability「自动创建 RBAC 资源」文档测试脚本
 # 对应文档: docs/en/installing/rbac-resources.mdx
 # 覆盖范围:
 #   1.「Procedure」章节: rbac:create-clusterrole / rbac:create-clusterrolebinding /
