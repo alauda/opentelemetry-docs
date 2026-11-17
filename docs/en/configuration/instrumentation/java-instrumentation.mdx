@@ -159,13 +159,13 @@ spec:
     env:
       - name: OTEL_JAVAAGENT_DEBUG
         value: "false"
+      - name: OTEL_LOGS_EXPORTER
+        value: none # [!code callout]
   exporter:
     endpoint: http://otel-collector.observability.svc:4318 # [!code callout]
   env:
     - name: OTEL_RESOURCE_ATTRIBUTES
       value: deployment.environment.name=development
-    - name: OTEL_LOGS_EXPORTER
-      value: none # [!code callout]
   sampler:
     type: parentbased_traceidratio
     argument: "1"
@@ -199,8 +199,8 @@ spec:
 
 <Callouts>
 1. The Java auto-instrumentation image used by the Operator to inject the agent. The v2 Operator does not ship a Java agent image, so you must build or supply one yourself. See the warning in [Instrumentation Options](./instrumentation-options.mdx).
-2. The OTLP exporter endpoint. Replace this URL with the address of your actual OpenTelemetry Collector.
-3. The logs exporter. Defaults to `otlp`; setting it to `none` disables log export.
+2. The logs exporter. Defaults to `otlp`; setting it to `none` disables log export.
+3. The OTLP exporter endpoint. Replace this URL with the address of your actual OpenTelemetry Collector.
 4. Enables Java auto-instrumentation injection for this pod. See [Supported Values for Injection Annotations](./instrumentation-options.mdx#supported-values-for-injection-annotations) for the accepted values.
 </Callouts>
 
