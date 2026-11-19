@@ -84,6 +84,11 @@ metadata:
   namespace: jaeger-system
 spec:
   restartPolicy: Never
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    seccompProfile:
+      type: RuntimeDefault
   containers:
     - name: telemetrygen
       image: ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen:latest
@@ -97,6 +102,10 @@ spec:
         - --rate=2
         - --service=telemetrygen
         - --workers=1
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: [ALL]
 EOF
 # Wait for telemetrygen to complete, then clean up the test Pod
 kubectl wait -n jaeger-system --for=jsonpath='{.status.phase}'=Succeeded pod/telemetrygen --timeout=10m
