@@ -9,7 +9,7 @@ You can configure the Alauda build of OpenTelemetry v2 to inject the OpenTelemet
 ## Prerequisites
 
 - **Alauda Container Platform Application Observability** (previously **Alauda Build of OpenTelemetry v2**) Operator is installed.
-- Alauda Build of Jaeger v2 is installed and deployed.
+- **Alauda Container Platform Distributed Tracing** (previously **Alauda Build of Jaeger v2**) is installed and deployed.
 - An active ACP CLI (`kubectl`) session by a cluster administrator with the `cluster-admin` role.
 
 ## Procedure
@@ -56,7 +56,7 @@ You can configure the Alauda build of OpenTelemetry v2 to inject the OpenTelemet
 
    <Callouts>
     1. Replace `<image-registry>/asm/opentelemetry-collector:<image-tag>` with the actual image registry and tag for the sidecar Collector.
-    2. Replace `jaeger-<example>-collector` with the actual service name of your Alauda Build of Jaeger v2 collector. The format is typically `<instance-name>-collector`.
+    2. Replace `jaeger-<example>-collector` with the actual service name of your Alauda Container Platform Distributed Tracing collector. The format is typically `<instance-name>-collector`.
    </Callouts>
 
 2. Create a deployment that uses the sidecar injection by adding the annotation `sidecar.opentelemetry.io/inject: "true"` and using the created ServiceAccount:
