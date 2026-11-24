@@ -12,6 +12,8 @@ set -e
 # 加载框架函数库
 source "$FRAMEWORK_ROOT/framework/common.sh"
 source "$FRAMEWORK_ROOT/framework/verify.sh"
+# shellcheck disable=SC1091
+source "$(dirname "${BASH_SOURCE[0]}")/_otel-operator-common.sh"
 
 # 测试函数：安装 Operator + 部署 OpenTelemetry Collector
 # 第一阶段通过通用 install_operator 覆盖 install-otel:* 全套 Operator 安装代码块：
@@ -36,6 +38,9 @@ test_install_opentelemetry() {
         log_error "Alauda Container Platform Application Observability Operator 安装失败"
         return 1
     }
+
+    # 装完或跳过安装（已装）后，等 webhook 可达且拿到 leader 再建 CR，见 _otel-operator-common.sh
+    otel_wait_operator_ready || return 1
 
     # 步骤 2: 创建 Collector 命名空间
     log_info "阶段 2.1: 创建 Collector 命名空间"
