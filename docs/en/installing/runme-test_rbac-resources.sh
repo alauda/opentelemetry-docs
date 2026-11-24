@@ -19,6 +19,8 @@ set -e
 # 加载框架函数库
 source "$FRAMEWORK_ROOT/framework/common.sh"
 source "$FRAMEWORK_ROOT/framework/verify.sh"
+# shellcheck disable=SC1091
+source "$(dirname "${BASH_SOURCE[0]}")/_otel-operator-common.sh"
 
 # Operator 所在命名空间（与文档 ClusterRoleBinding subject、重启命令保持一致）
 RBAC_OPERATOR_NS="opentelemetry-operator2"
@@ -66,12 +68,11 @@ test_rbac_resources() {
         log_info "命名空间 $RBAC_OPERATOR_NS 不存在（Operator 尚未安装），该可选步骤为空操作"
     fi
 
-    # Operator 已安装时等待其重新就绪，避免后续测试踩到尚未恢复的 admission webhook
-    local operator_deploys
-    operator_deploys=$(kubectl -n "$RBAC_OPERATOR_NS" get deployment -o name 2>/dev/null || true)
-    if [ -n "$operator_deploys" ]; then
-        log_info "等待 Operator Deployment 重新可用: $(echo "$operator_deploys" | tr '\n' ' ')"
-        kubectl -n "$RBAC_OPERATOR_NS" wait --for=condition=Available deployment --all --timeout=3m || {
+    # Operator 已安装时等待其真正恢复（Pod 就绪 + webhook 可达 + 拿到 leader）。
+    # 只等 Deployment Available 不够：状态更新与 Service 后端生效都有延迟，
+    # 紧接着的建 CR 会 connection refused（ACP-58979 / ACP-58980）
+    if [ -n "$(kubectl -n "$RBAC_OPERATOR_NS" get deployment -o name 2>/dev/null || true)" ]; then
+        otel_wait_operator_ready || {
             log_error "等待 Operator 重新就绪失败"
             return 1
         }
